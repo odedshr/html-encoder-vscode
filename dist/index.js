@@ -186,7 +186,7 @@ var NodeParser = /** @class */ (function () {
                 instructions.push("if (this._getValue(this.data, '" + condition + "')) {");
             }
             if (varName) {
-                instructions.push("node.setAttribute('" + attrName + "', this._getValue(this.data, '" + varName + "'));");
+                instructions.push("node.setAttribute('" + attrName + "', this._getValue(this.data, '" + varName.replace(/[\'"]/g, "\\'") + "'));");
                 if (liveId) {
                     instructions.push("this.set['" + liveId + "#" + attrName + "'] = { node, type: 'attribute', 'attrName': '" + attrName + "'}");
                 }

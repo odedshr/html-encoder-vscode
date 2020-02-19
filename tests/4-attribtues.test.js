@@ -41,6 +41,14 @@ describe('htmlEncoder: attributes', () => {
 			'set conditional attributes to node'
 		));
 
+	it('supports <?attr condition?key="hardcoded"?> for parent', () =>
+		test(
+			'<div><?attr c1?val1="a" c2?val2=\'b\'?>Hello <b>World</b></div>',
+			{ c1: true, c2: true },
+			'<div val1="a" val2="b">Hello <b>World</b></div>',
+			'set conditional attributes to node with hardcoded values'
+		));
+
 	it('supports <?attr !condition?key=value?> for parent', () =>
 		test(
 			'<div><?attr !c1?val1=a !c2?val2=b?>Hello <b>World</b></div>',

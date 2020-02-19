@@ -90,6 +90,9 @@ var JSNode = /** @class */ (function () {
         return elm;
     };
     JSNode.prototype._getValue = function (data, path) {
+        if (path.match(/^(['"].*(\1))$/)) {
+            return path.substring(1, path.length - 1);
+        }
         return path[0] === '!'
             ? !this._getValue(data, path.substr(1))
             : path

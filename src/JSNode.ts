@@ -106,6 +106,10 @@ class JSNode {
 	}
 
 	_getValue(data: { [key: string]: any }, path: string): any {
+		if (path.match(/^(['"].*(\1))$/)) {
+			return path.substring(1, path.length - 1);
+		}
+
 		return path[0] === '!'
 			? !this._getValue(data, path.substr(1))
 			: path
