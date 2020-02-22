@@ -29,4 +29,10 @@ describe('htmlEncoder: basic operations', () => {
 
 	it('supports <?==html?>', () =>
 		test('<div>Hello <?==name?></div>', { name: '<b>World</b>' }, '<div>Hello <b>World</b></div>', 'binded html'));
+
+	it('supports <span><?==html?></span>', () =>
+		test('<div>Hello <span><?==name?></span></div>', { name: '<b>World</b>' }, '<div>Hello <span><b>World</b></span></div>', 'binded html'));
+
+		it('supports <?==text?>', () =>
+		test('<div>Hello <span><?==name?></span></div>', { name: 'World' }, '<div>Hello <span>World</span></div>', 'binded text via html input'));
 });

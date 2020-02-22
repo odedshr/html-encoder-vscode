@@ -2,7 +2,9 @@ import { DOMParser } from 'xmldom';
 import { readFileSync } from 'fs';
 
 export default function htmlEncoder(html: string, isTypescript = false) {
-	const document: Document = domParser.parseFromString(html, 'text/xml');
+	const document: Document = domParser.parseFromString(html.replace(/\n\s+>/g,'>'), 'text/xml');
+
+	// console.debug(html.replace(/\n\s+>/g,'>'));
 	const nodeParser = new NodeParser(document);
 
 	return transpile(nodeParser, isTypescript);
@@ -126,7 +128,7 @@ class NodeParser {
 		} else if (tagName.indexOf('==') === 0) {
 			return [
 				this._getAppendLivableString(
-					`this.domParser.parseFromString(this._getValue(this.data, '${tagName.substring(2)}'), 'text/xml')`,
+					`this._getHTMLNode(this._getValue(this.data, '${tagName.substring(2)}'))`,
 					node.nodeValue,
 					'html'
 				)
@@ -186,10 +188,14 @@ class NodeParser {
 	}
 
 	_parseChildren(node: HTMLElement): string[] {
+		//@ts-ignore
+		const childNodes = Array.from(node.childNodes || [])
 		const stack: SubRoutine[] = [];
 		let children: string[] = [] as string[];
 
-		Array.from(node.childNodes || []).forEach((childNode: ChildNode) => {
+		// console.debug(`-- parsing ${node.tagName}: ${this._getChildrenDecription(childNodes)}`);
+		
+		childNodes.forEach((childNode: ChildNode) => {
 			const parsed = this._parseNode(childNode);
 
 			if (parsed instanceof SubRoutine) {
@@ -201,6 +207,9 @@ class NodeParser {
 			} else if (parsed === null) {
 				const subRoutine = stack.pop();
 
+				if (!subRoutine) {
+					throw Error(`end of subRoutine without start: ${this._getChildrenDecription(childNodes)}`)
+				}
 				children = subRoutine.parent;
 				children.push(subRoutine.toString());
 			} else if (Array.isArray(parsed)) {
@@ -213,6 +222,24 @@ class NodeParser {
 		return children;
 	}
 
+	_getChildrenDecription(children:ChildNode[]):string {
+		return JSON.stringify(children.map(node=>{
+			switch (node.nodeType) {
+				case NodeType.Document:
+				case NodeType.DocumentFragment:
+					return 'doc'
+				case NodeType.ProcessingInstruction:
+					return (<ProcessingInstruction>node).target;
+				case NodeType.Text:
+					return `t{${node.textContent}}`;
+				case NodeType.Comment:
+					return `t{${node.textContent}}`;
+				default:
+					return (<HTMLElement>node).tagName;
+			};
+		}))
+	}
+
 	// value is `condition?attrName=varName`
 	_parseAttrValue(value: string) {
 		const matches = value.match(/((.+)\?)?([^=.]+)(=(.+))?/);
@@ -220,7 +247,7 @@ class NodeParser {
 	}
 
 	_getAttributeInstructions(attributes: string[]) {
-		const instructions = ['{ let node = this._getFirstOrSelf(elm), tmpAttrs;'];
+		const instructions = ['{ let node = this._getPreceedingOrSelf(elm), tmpAttrs;'];
 
 		let liveId: string;
 
@@ -269,7 +296,7 @@ class NodeParser {
 
 	_getCssInstructions(classes: string[]) {
 		const instructions = [
-			`{ let tmpElm = this._getFirstOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',
+			`{ let tmpElm = this._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',
 		target = tmpCss.length ? tmpCss.split(/\s/) : [];`
 		];
 

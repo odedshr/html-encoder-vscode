@@ -25,4 +25,12 @@ describe('htmlEncoder: loops', () => {
 			'<ul><li>0a</li><li>1b</li><li>2c</li></ul>',
 			'iterates an object'
 		));
+
+		it('supports <?value:key@object?></?@?> with select:option', () =>
+		test(
+			'<select><?v:k@items?><option><?attr value=k?><?=v?></option><?/@?></select>',
+			{ items: { a: 'apple', b: 'berry', c: 'oranges' } },
+			'<select><option value="a">apple</option><option value="b">berry</option><option value="c">oranges</option></select>',
+			'iterates an object'
+		));
 });

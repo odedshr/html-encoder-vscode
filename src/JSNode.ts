@@ -3,15 +3,17 @@ class JSNode {
 	data: object;
 	node: ChildNode;
 	domParser: DOMParser;
+	docElm: Document
 
 	constructor(data: object) {
 		this.set = {};
 		this.domParser = this._getDOMParser();
 
 		//docElm is used by injected code
-		const docElm: Document =
-			typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
-
+		
+		this.docElm = typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
+		const docElm = this.docElm;
+		
 		this.data = data;
 		// main code goes here:
 		console.log(docElm);
@@ -98,11 +100,12 @@ class JSNode {
 		this._setValue(this.data, indexName, orig.index);
 	}
 
-	_getFirstOrSelf(elm: HTMLElement) {
-		if (elm.lastChild && elm.lastChild.nodeType === 1) {
-			return elm.lastChild;
-		}
-		return elm;
+	_getPreceedingOrSelf(elm: HTMLElement) {
+		//@ts-ignore
+		const children = Array.from(elm.childNodes)
+		children.reverse();
+
+		return children.find(child => (child.nodeType === 1)) || elm;
 	}
 
 	_getValue(data: { [key: string]: any }, path: string): any {
@@ -127,6 +130,24 @@ class JSNode {
 			(ptr: { [key: string]: any }, step) => (ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined),
 			data
 		)[varName] = value;
+	}
+
+	_getHTMLNode(htmlString:string | HTMLElement) {
+		if (!(typeof htmlString === 'string')) {
+			return htmlString;
+		}
+		
+		if (!htmlString.match(/^<(.*?)>.*<\/(\1)>$/)) {
+			return this.docElm.createTextNode(htmlString);
+		}
+
+		try {
+			return <HTMLElement>this.domParser.parseFromString(htmlString, 'text/xml').firstChild;
+		}
+		catch(err) {
+			console.error(err);
+			return this.docElm.createTextNode(htmlString);
+		}
 	}
 
 	_toString() {

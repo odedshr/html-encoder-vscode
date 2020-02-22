@@ -1,46 +1,74 @@
 {
-	"name": "html-encoder",
-	"version": "0.2.0",
-	"description": "a CLI for converting HTML to javascript code",
-	"main": "dist/index.js",
-	"scripts": {
-		"test": "mocha tests/*.test.js",
-		"build": "npm run copy & npm run rollupw",
-		"rollup": "rollup -c",
-		"rollupw": "rollup -cw",
-		"copy": "node ./node_modules/assetomat/index.js"
-	},
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/odedshr/html-encoder.git"
-	},
-	"author": "odedshr@gmail.com",
-	"license": "ISC",
-	"bugs": {
-		"url": "https://github.com/odedshr/html-encoder/issues"
-	},
-	"homepage": "https://github.com/odedshr/html-encoder#readme",
-	"assets": [
-		{
-			"source": "src/JSNode.ts",
-			"target": "dist/JSNode.ts"
-		}
-	],
-	"devDependencies": {
-		"assert": "^2.0.0",
-		"assetomat": "^1.0.0",
-		"mocha": "^6.2.1",
-		"require-from-string": "^2.0.2",
-		"rollup": "^1.23.1",
-		"rollup-plugin-bundle-imports": "^1.4.5",
-		"rollup-plugin-terser": "^5.1.2",
-		"rollup-plugin-typescript2": "^0.24.3",
-		"terser": "^4.3.8",
-		"typescript": "^3.6.3",
-		"uglify-js": "^3.6.0"
-	},
-	"dependencies": {
-		"@types/xmldom": "^0.1.29",
-		"xmldom": "^0.1.27"
-	}
+  "_from": "html-encoder",
+  "_id": "html-encoder@0.2.0",
+  "_inBundle": false,
+  "_integrity": "sha512-BBKL+iTEqPXOJPRfzEYfUZskYLA7T8Danblk34Ahd1OGh01ZJrZKisl07xFvX9nnJJmQsEtN5R2fLtNXO1rHBg==",
+  "_location": "/html-encoder",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "html-encoder",
+    "name": "html-encoder",
+    "escapedName": "html-encoder",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/html-encoder/-/html-encoder-0.2.0.tgz",
+  "_shasum": "8c4d8d78fdb2678ec00be6a15b9fe3056529c66a",
+  "_spec": "html-encoder",
+  "_where": "/Users/odedsharon/Documents/hills-lms",
+  "assets": [
+    {
+      "source": "src/JSNode.ts",
+      "target": "dist/JSNode.ts"
+    }
+  ],
+  "author": {
+    "name": "odedshr@gmail.com"
+  },
+  "bugs": {
+    "url": "https://github.com/odedshr/html-encoder/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "@types/xmldom": "^0.1.29",
+    "xmldom": "^0.1.27"
+  },
+  "deprecated": false,
+  "description": "a CLI for converting HTML to javascript code",
+  "devDependencies": {
+    "assert": "^2.0.0",
+    "assetomat": "^1.0.0",
+    "mocha": "^6.2.1",
+    "require-from-string": "^2.0.2",
+    "rollup": "^1.23.1",
+    "rollup-plugin-bundle-imports": "^1.4.5",
+    "rollup-plugin-terser": "^5.1.2",
+    "rollup-plugin-typescript2": "^0.24.3",
+    "terser": "^4.3.8",
+    "typescript": "^3.6.3",
+    "uglify-js": "^3.6.0"
+  },
+  "homepage": "https://github.com/odedshr/html-encoder#readme",
+  "license": "ISC",
+  "main": "dist/index.js",
+  "name": "html-encoder",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/odedshr/html-encoder.git"
+  },
+  "scripts": {
+    "build": "npm run copy & npm run rollupw",
+    "copy": "node ./node_modules/assetomat/index.js",
+    "rollup": "rollup -c",
+    "rollupw": "rollup -cw",
+    "test": "mocha tests/*.test.js"
+  },
+  "version": "0.2.0"
 }
