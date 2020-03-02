@@ -5,7 +5,11 @@ var JSNode = /** @class */ (function () {
         this.set = {};
         this.domParser = this._getDOMParser();
         //docElm is used by injected code
-        var docElm = typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
+        this.docElm =
+            typeof document !== 'undefined'
+                ? document
+                : this.domParser.parseFromString('<html></html>', 'text/xml');
+        var docElm = this.docElm;
         this.data = data;
         // main code goes here:
         console.log(docElm);
@@ -56,8 +60,15 @@ var JSNode = /** @class */ (function () {
                             property.node.data = value;
                             break;
                         case 'html':
-                            var newNode = typeof value === 'string' ? _this.domParser.parseFromString(value, 'text/xml') : value;
-                            return property.node.parentNode.replaceChild(newNode, property.node);
+                            try {
+                                var newNode = typeof value === 'string'
+                                    ? _this.domParser.parseFromString(value, 'text/xml')
+                                    : value;
+                                return property.node.parentNode.replaceChild(newNode, property.node);
+                            }
+                            catch (err) {
+                                console.error("failed to replace node to " + value, err);
+                            }
                         case 'attribute':
                             if (value === null) {
                                 return property.node.removeAttribute(prop);
@@ -83,11 +94,11 @@ var JSNode = /** @class */ (function () {
         this._setValue(this.data, iteratorName, orig.iterator);
         this._setValue(this.data, indexName, orig.index);
     };
-    JSNode.prototype._getFirstOrSelf = function (elm) {
-        if (elm.lastChild && elm.lastChild.nodeType === 1) {
-            return elm.lastChild;
-        }
-        return elm;
+    JSNode.prototype._getPreceedingOrSelf = function (elm) {
+        //@ts-ignore
+        var children = Array.from(elm.childNodes);
+        children.reverse();
+        return children.find(function (child) { return child.nodeType === 1; }) || elm;
     };
     JSNode.prototype._getValue = function (data, path) {
         if (path.match(/^(['"].*(\1))$/)) {
@@ -97,12 +108,31 @@ var JSNode = /** @class */ (function () {
             ? !this._getValue(data, path.substr(1))
             : path
                 .split('.')
-                .reduce(function (ptr, step) { return (ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined); }, data);
+                .reduce(function (ptr, step) {
+                return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
+            }, data);
     };
     JSNode.prototype._setValue = function (data, path, value) {
         var pathParts = path.split('.');
         var varName = pathParts.pop();
-        pathParts.reduce(function (ptr, step) { return (ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined); }, data)[varName] = value;
+        pathParts.reduce(function (ptr, step) {
+            return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
+        }, data)[varName] = value;
+    };
+    JSNode.prototype._getHTMLNode = function (htmlString) {
+        if (!(typeof htmlString === 'string')) {
+            return htmlString;
+        }
+        if (!htmlString.match(/^<(.*?)>.*<\/(\1)>$/)) {
+            return this.docElm.createTextNode(htmlString);
+        }
+        try {
+            return (this.domParser.parseFromString(htmlString, 'text/xml').firstChild);
+        }
+        catch (err) {
+            console.error("failed to parse string: " + htmlString, err);
+            return this.docElm.createTextNode(htmlString);
+        }
     };
     JSNode.prototype._toString = function () {
         return this.toString();

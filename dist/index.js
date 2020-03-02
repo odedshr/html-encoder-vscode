@@ -5,7 +5,8 @@ var fs = require('fs');
 
 function htmlEncoder(html, isTypescript) {
     if (isTypescript === void 0) { isTypescript = false; }
-    var document = domParser.parseFromString(html, 'text/xml');
+    var document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
+    // console.debug(html.replace(/\n\s+>/g,'>'));
     var nodeParser = new NodeParser(document);
     return transpile(nodeParser, isTypescript);
 }
@@ -101,7 +102,7 @@ var NodeParser = /** @class */ (function () {
         }
         else if (tagName.indexOf('==') === 0) {
             return [
-                this._getAppendLivableString("this.domParser.parseFromString(this._getValue(this.data, '" + tagName.substring(2) + "'), 'text/xml')", node.nodeValue, 'html')
+                this._getAppendLivableString("this._getHTMLNode(this._getValue(this.data, '" + tagName.substring(2) + "'))", node.nodeValue, 'html')
             ];
         }
         else if (tagName.indexOf('=') === 0) {
@@ -144,9 +145,12 @@ var NodeParser = /** @class */ (function () {
     };
     NodeParser.prototype._parseChildren = function (node) {
         var _this = this;
+        //@ts-ignore
+        var childNodes = Array.from(node.childNodes || []);
         var stack = [];
         var children = [];
-        Array.from(node.childNodes || []).forEach(function (childNode) {
+        // console.debug(`-- parsing ${node.tagName}: ${this._getChildrenDecription(childNodes)}`);
+        childNodes.forEach(function (childNode) {
             var parsed = _this._parseNode(childNode);
             if (parsed instanceof SubRoutine) {
                 parsed.parent = children;
@@ -156,6 +160,9 @@ var NodeParser = /** @class */ (function () {
             }
             else if (parsed === null) {
                 var subRoutine = stack.pop();
+                if (!subRoutine) {
+                    throw Error("end of subRoutine without start: " + _this._getChildrenDecription(childNodes));
+                }
                 children = subRoutine.parent;
                 children.push(subRoutine.toString());
             }
@@ -168,6 +175,23 @@ var NodeParser = /** @class */ (function () {
         });
         return children;
     };
+    NodeParser.prototype._getChildrenDecription = function (children) {
+        return JSON.stringify(children.map(function (node) {
+            switch (node.nodeType) {
+                case NodeType.Document:
+                case NodeType.DocumentFragment:
+                    return 'doc';
+                case NodeType.ProcessingInstruction:
+                    return node.target;
+                case NodeType.Text:
+                    return "t{" + node.textContent + "}";
+                case NodeType.Comment:
+                    return "t{" + node.textContent + "}";
+                default:
+                    return node.tagName;
+            }
+        }));
+    };
     // value is `condition?attrName=varName`
     NodeParser.prototype._parseAttrValue = function (value) {
         var matches = value.match(/((.+)\?)?([^=.]+)(=(.+))?/);
@@ -175,7 +199,7 @@ var NodeParser = /** @class */ (function () {
     };
     NodeParser.prototype._getAttributeInstructions = function (attributes) {
         var _this = this;
-        var instructions = ['{ let node = this._getFirstOrSelf(elm), tmpAttrs;'];
+        var instructions = ['{ let node = this._getPreceedingOrSelf(elm), tmpAttrs;'];
         var liveId;
         if (attributes[attributes.length - 1].indexOf('#') === 0) {
             liveId = attributes.pop().substring(1);
@@ -213,7 +237,7 @@ var NodeParser = /** @class */ (function () {
     NodeParser.prototype._getCssInstructions = function (classes) {
         var _this = this;
         var instructions = [
-            "{ let tmpElm = this._getFirstOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',\n\t\ttarget = tmpCss.length ? tmpCss.split(/s/) : [];"
+            "{ let tmpElm = this._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',\n\t\ttarget = tmpCss.length ? tmpCss.split(/s/) : [];"
         ];
         classes.forEach(function (varValue) {
             var _a = _this._parseCssValue(varValue), condition = _a.condition, varName = _a.varName;
