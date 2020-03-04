@@ -123,10 +123,15 @@ var JSNode = /** @class */ (function () {
         if (!(typeof htmlString === 'string')) {
             return htmlString;
         }
-        if (!htmlString.match(/^<(.*?)>.*<\/(\1)>$/)) {
+        if (!htmlString.match(/<(.*?)>.*<\/(\1)>/)) {
             return this.docElm.createTextNode(htmlString);
         }
+        else if (!htmlString.match(/^<(.*?)>.*<\/(\1)>$/)) {
+            // htmlString is text that has html tags in it, we need to wrap it
+            htmlString = "<span>" + htmlString + "</span>";
+        }
         try {
+            console.log('parsing ', htmlString);
             return (this.domParser.parseFromString(htmlString, 'text/xml').firstChild);
         }
         catch (err) {
