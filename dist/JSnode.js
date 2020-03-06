@@ -1,19 +1,41 @@
 'use strict';
 
-var JSNode = /** @class */ (function () {
-    function JSNode(data) {
+/*! *****************************************************************************
+Copyright (c) Microsoft Corporation. All rights reserved.
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use
+this file except in compliance with the License. You may obtain a copy of the
+License at http://www.apache.org/licenses/LICENSE-2.0
+
+THIS CODE IS PROVIDED ON AN *AS IS* BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY IMPLIED
+WARRANTIES OR CONDITIONS OF TITLE, FITNESS FOR A PARTICULAR PURPOSE,
+MERCHANTABLITY OR NON-INFRINGEMENT.
+
+See the Apache Version 2.0 License for specific language governing permissions
+and limitations under the License.
+***************************************************************************** */
+/* global Reflect, Promise */
+
+var extendStatics = function(d, b) {
+    extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return extendStatics(d, b);
+};
+
+function __extends(d, b) {
+    extendStatics(d, b);
+    function __() { this.constructor = d; }
+    d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+}
+
+var JSNodeAbstract = /** @class */ (function () {
+    function JSNodeAbstract() {
         this.set = {};
         this.domParser = this._getDOMParser();
-        //docElm is used by injected code
-        this.docElm =
-            typeof document !== 'undefined'
-                ? document
-                : this.domParser.parseFromString('<html></html>', 'text/xml');
-        var docElm = this.docElm;
-        this.data = data;
-        // main code goes here:
-        console.log(docElm);
-        // end of main code
+        this.docElm = this.getDocElm();
+    }
+    JSNodeAbstract.prototype.defineSet = function () {
         if (Object.keys(this.set).length) {
             Object.defineProperty(this.node, 'set', {
                 value: this._getSetProxy(this.set),
@@ -21,9 +43,13 @@ var JSNode = /** @class */ (function () {
                 writable: true
             });
         }
-        return this.node;
-    }
-    JSNode.prototype._getDOMParser = function () {
+    };
+    JSNodeAbstract.prototype.getDocElm = function () {
+        return typeof document !== 'undefined'
+            ? document
+            : this.domParser.parseFromString('<html></html>', 'text/xml');
+    };
+    JSNodeAbstract.prototype._getDOMParser = function () {
         var _get = function (item, key) { return item[key]; };
         if (this.constructor.hasOwnProperty('DOMParser')) {
             return new (_get(this.constructor, 'DOMParser'))();
@@ -32,11 +58,11 @@ var JSNode = /** @class */ (function () {
             return new DOMParser();
         }
     };
-    JSNode.prototype._getSubTemplate = function (templateName) {
+    JSNodeAbstract.prototype._getSubTemplate = function (templateName) {
         var Template = this._getValue(this.data, templateName);
         return new Template(this.data);
     };
-    JSNode.prototype._getSetProxy = function (map) {
+    JSNodeAbstract.prototype._getSetProxy = function (map) {
         var _this = this;
         return new Proxy(map, {
             get: function (map, prop) {
@@ -80,7 +106,7 @@ var JSNode = /** @class */ (function () {
             }
         });
     };
-    JSNode.prototype._forEach = function (iteratorName, indexName, varName, fn) {
+    JSNodeAbstract.prototype._forEach = function (iteratorName, indexName, varName, fn) {
         var orig = {
             iterator: this._getValue(this.data, iteratorName),
             index: this._getValue(this.data, indexName)
@@ -94,13 +120,13 @@ var JSNode = /** @class */ (function () {
         this._setValue(this.data, iteratorName, orig.iterator);
         this._setValue(this.data, indexName, orig.index);
     };
-    JSNode.prototype._getPreceedingOrSelf = function (elm) {
+    JSNodeAbstract.prototype._getPreceedingOrSelf = function (elm) {
         //@ts-ignore
         var children = Array.from(elm.childNodes);
         children.reverse();
         return children.find(function (child) { return child.nodeType === 1; }) || elm;
     };
-    JSNode.prototype._getValue = function (data, path) {
+    JSNodeAbstract.prototype._getValue = function (data, path) {
         if (path.match(/^(['"].*(\1))$/)) {
             return path.substring(1, path.length - 1);
         }
@@ -112,14 +138,14 @@ var JSNode = /** @class */ (function () {
                 return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
             }, data);
     };
-    JSNode.prototype._setValue = function (data, path, value) {
+    JSNodeAbstract.prototype._setValue = function (data, path, value) {
         var pathParts = path.split('.');
         var varName = pathParts.pop();
         pathParts.reduce(function (ptr, step) {
             return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
         }, data)[varName] = value;
     };
-    JSNode.prototype._getHTMLNode = function (htmlString) {
+    JSNodeAbstract.prototype._getHTMLNode = function (htmlString) {
         if (!(typeof htmlString === 'string')) {
             return htmlString;
         }
@@ -131,7 +157,7 @@ var JSNode = /** @class */ (function () {
             htmlString = "<span>" + htmlString + "</span>";
         }
         try {
-            console.log('parsing ', htmlString);
+            // console.debug ('parsing ', htmlString);
             return (this.domParser.parseFromString(htmlString, 'text/xml').firstChild);
         }
         catch (err) {
@@ -139,10 +165,25 @@ var JSNode = /** @class */ (function () {
             return this.docElm.createTextNode(htmlString);
         }
     };
-    JSNode.prototype._toString = function () {
+    JSNodeAbstract.prototype._toString = function () {
         return this.toString();
     };
-    return JSNode;
+    return JSNodeAbstract;
 }());
+var JSNode = /** @class */ (function (_super) {
+    __extends(JSNode, _super);
+    function JSNode(data) {
+        var _this = _super.call(this) || this;
+        _this.data = data;
+        //docElm is used by injected code
+        var docElm = _this.docElm;
+        // main code goes here:
+        console.log(docElm);
+        // end of main code
+        _this.defineSet();
+        return _this.node;
+    }
+    return JSNode;
+}(JSNodeAbstract));
 
 module.exports = JSNode;

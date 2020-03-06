@@ -1,27 +1,18 @@
-class JSNode {
+abstract class JSNodeAbstract {
   set: object;
   data: object;
   node: ChildNode;
   domParser: DOMParser;
   docElm: Document;
 
-  constructor(data: object) {
+  constructor() {
     this.set = {};
     this.domParser = this._getDOMParser();
 
-    //docElm is used by injected code
+    this.docElm = this.getDocElm();
+  }
 
-    this.docElm =
-      typeof document !== 'undefined'
-        ? document
-        : this.domParser.parseFromString('<html></html>', 'text/xml');
-    const docElm = this.docElm;
-
-    this.data = data;
-    // main code goes here:
-    console.log(docElm);
-    // end of main code
-
+  protected defineSet() {
     if (Object.keys(this.set).length) {
       Object.defineProperty(this.node, 'set', {
         value: this._getSetProxy(this.set),
@@ -29,8 +20,12 @@ class JSNode {
         writable: true
       });
     }
+  }
 
-    return <any>this.node;
+  private getDocElm(): Document {
+    return typeof document !== 'undefined'
+      ? document
+      : this.domParser.parseFromString('<html></html>', 'text/xml');
   }
 
   _getDOMParser(): DOMParser {
@@ -165,7 +160,7 @@ class JSNode {
     }
 
     try {
-      console.log('parsing ', htmlString);
+      // console.debug ('parsing ', htmlString);
       return <HTMLElement>(
         this.domParser.parseFromString(htmlString, 'text/xml').firstChild
       );
@@ -179,4 +174,20 @@ class JSNode {
     return this.toString();
   }
 }
-export default JSNode;
+
+export default class JSNode extends JSNodeAbstract {
+  constructor(data: object) {
+    super();
+
+    this.data = data;
+
+    //docElm is used by injected code
+    const docElm = this.docElm;
+    // main code goes here:
+    console.log(docElm);
+    // end of main code
+
+    this.defineSet();
+    return <any>this.node;
+  }
+}
