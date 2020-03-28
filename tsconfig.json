@@ -1,7 +1,7 @@
 {
 	"compilerOptions": {
-		"declaration": false,
-		/*"declarationDir": "./dist/@types",*/
+		"declaration": true,
+		"declarationDir": "./dist/@types",
 		"module": "es6",
 		"noImplicitAny": true,
 		"outDir": "./dist",
