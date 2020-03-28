@@ -70,5 +70,5 @@
     "rollupw": "rollup -cw",
     "test": "mocha tests/*.test.js"
   },
-  "version": "0.2.4"
+  "version": "0.2.5"
 }
