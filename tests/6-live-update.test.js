@@ -1,10 +1,10 @@
 const assert = require('assert');
 const { DOMParser } = require('xmldom');
 const requireFromString = require('require-from-string');
-const htmlEncoder = require('../dist/index');
+const htmlEncoder = require('../tests/dist/index').default;
 
 function getNode(htmlString, data) {
-	const JSNode = requireFromString(htmlEncoder(htmlString));
+	const JSNode = requireFromString(htmlEncoder(htmlString)).default;
 	JSNode.DOMParser = DOMParser;
 	return new JSNode(data);
 }

@@ -1,9 +1,6 @@
-'use strict';
-
-var xmldom = require('xmldom');
-var fs = require('fs');
-
-function htmlEncoder(html, isTypescript) {
+import { DOMParser } from 'xmldom';
+import { readFileSync } from 'fs';
+export default function htmlEncoder(html, isTypescript) {
     if (isTypescript === void 0) { isTypescript = false; }
     var document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
     // console.debug(html.replace(/\n\s+>/g,'>'));
@@ -11,12 +8,12 @@ function htmlEncoder(html, isTypescript) {
     return transpile(nodeParser, isTypescript);
 }
 function transpile(parser, isTypescript) {
-    return fs.readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
+    return readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
 }
 function getTemplateFile(isTypescript) {
     return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
 }
-var domParser = new xmldom.DOMParser(), NodeType = {
+var domParser = new DOMParser(), NodeType = {
     Element: 1,
     Attribute: 2,
     Text: 3,
@@ -190,6 +187,7 @@ var NodeParser = /** @class */ (function () {
                 default:
                     return node.tagName;
             }
+            ;
         }));
     };
     // value is `condition?attrName=varName`
@@ -257,5 +255,3 @@ var NodeParser = /** @class */ (function () {
     };
     return NodeParser;
 }());
-
-module.exports = htmlEncoder;

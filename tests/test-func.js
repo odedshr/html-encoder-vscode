@@ -1,11 +1,11 @@
 const assert = require('assert');
 const { DOMParser } = require('xmldom');
 const requireFromString = require('require-from-string');
-const htmlEncoder = require('../dist/index');
+const htmlEncoder = require('../tests/dist/index').default;
 const { writeFileSync } = require('fs');
 
 function getOutputString(encodedNode, data) {
-	const JSNode = requireFromString(encodedNode);
+	const JSNode = requireFromString(encodedNode).default;
 	JSNode.DOMParser = DOMParser;
 	return new JSNode(data).toString();
 }
