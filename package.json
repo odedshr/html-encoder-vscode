@@ -64,5 +64,5 @@
 		"pretest": "tsc -p tsconfig.tests.json",
 		"test": "mocha tests/1-simple.test.js"
 	},
-	"version": "0.2.5"
+	"version": "0.2.6"
 }
