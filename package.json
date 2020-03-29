@@ -64,5 +64,5 @@
 		"copy": "node ./node_modules/assetomat/index.js",
 		"test": "mocha tests/1-simple.test.js"
 	},
-	"version": "0.2.8"
+	"version": "0.2.9"
 }
