@@ -65,5 +65,5 @@
 		"pretest": "npm run copy & tsc",
 		"test": "mocha tests/1-simple.test.js"
 	},
-	"version": "0.2.9"
+	"version": "0.2.10"
 }
