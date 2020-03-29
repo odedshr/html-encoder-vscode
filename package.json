@@ -38,6 +38,7 @@
 	"dependencies": {
 		"@types/node": "^13.9.5",
 		"@types/xmldom": "^0.1.29",
+		"chokidar": "^3.3.1",
 		"xmldom": "^0.1.27"
 	},
 	"deprecated": false,
@@ -52,18 +53,20 @@
 	},
 	"homepage": "https://github.com/odedshr/html-encoder#readme",
 	"license": "ISC",
-	"main": "dist/index.js",
-	"types": "dist/@types/index.ts.js",
+	"main": "./dist/cli.js",
+	"types": "./dist/@types/index.ts.js",
 	"name": "html-encoder",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/odedshr/html-encoder.git"
 	},
 	"scripts": {
-		"build": "npm run copy & tsc -w",
+		"build": "npm run copy & tsc",
+		"build:watch": "npm run copy & tsc -w",
 		"copy": "node ./node_modules/assetomat/index.js",
-		"pretest": "npm run copy & tsc",
-		"test": "mocha tests/1-simple.test.js"
+		"pretest": "npm run build",
+		"test": "mocha tests/1-simple.test.js",
+		"start": "node ./dist/cli.js"
 	},
 	"version": "0.2.10"
 }
