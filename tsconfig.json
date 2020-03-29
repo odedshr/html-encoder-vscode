@@ -2,7 +2,7 @@
 	"compilerOptions": {
 		"declaration": true,
 		"declarationDir": "./dist/@types",
-		"module": "es6",
+		"module": "CommonJS",
 		"noImplicitAny": true,
 		"outDir": "./dist",
 		"target": "es5"

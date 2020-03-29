@@ -1,19 +1,22 @@
-import { DOMParser } from 'xmldom';
-import { readFileSync } from 'fs';
-export default function htmlEncoder(html, isTypescript) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var xmldom_1 = require("xmldom");
+var fs_1 = require("fs");
+function htmlEncoder(html, isTypescript) {
     if (isTypescript === void 0) { isTypescript = false; }
     var document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
     // console.debug(html.replace(/\n\s+>/g,'>'));
     var nodeParser = new NodeParser(document);
     return transpile(nodeParser, isTypescript);
 }
+exports.default = htmlEncoder;
 function transpile(parser, isTypescript) {
-    return readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
+    return fs_1.readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
 }
 function getTemplateFile(isTypescript) {
     return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
 }
-var domParser = new DOMParser(), NodeType = {
+var domParser = new xmldom_1.DOMParser(), NodeType = {
     Element: 1,
     Attribute: 2,
     Text: 3,

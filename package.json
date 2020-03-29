@@ -62,7 +62,6 @@
 	"scripts": {
 		"build": "npm run copy & tsc -w",
 		"copy": "node ./node_modules/assetomat/index.js",
-		"pretest": "tsc -p tsconfig.tests.json",
 		"test": "mocha tests/1-simple.test.js"
 	},
 	"version": "0.2.8"

@@ -1,7 +1,7 @@
 const { test } = require('./test-func.js');
 const { DOMParser } = require('xmldom');
 const requireFromString = require('require-from-string');
-const htmlEncoder = require('../tests/dist/index').default;
+const htmlEncoder = require('../dist/index').default;
 
 function getTemplate(htmlString) {
 	const JSNode = requireFromString(htmlEncoder(htmlString)).default;

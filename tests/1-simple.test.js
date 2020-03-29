@@ -1,6 +1,6 @@
 const assert = require('assert');
 const requireFromString = require('require-from-string');
-const htmlEncoder = require('../tests/dist/index').default;
+const htmlEncoder = require('../dist/index').default;
 const { test } = require('./test-func.js');
 
 describe('htmlEncoder: basic operations', () => {

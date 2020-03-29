@@ -1,3 +1,4 @@
+"use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
         extendStatics = Object.setPrototypeOf ||
@@ -11,6 +12,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+Object.defineProperty(exports, "__esModule", { value: true });
 var JSNodeAbstract = /** @class */ (function () {
     function JSNodeAbstract() {
         this.set = {};
@@ -167,4 +169,4 @@ var JSNode = /** @class */ (function (_super) {
     }
     return JSNode;
 }(JSNodeAbstract));
-export default JSNode;
+exports.default = JSNode;
