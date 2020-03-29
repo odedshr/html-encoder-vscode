@@ -68,5 +68,5 @@
 		"test": "mocha tests/1-simple.test.js",
 		"start": "node ./dist/cli.js"
 	},
-	"version": "0.2.10"
+	"version": "0.3.0"
 }
