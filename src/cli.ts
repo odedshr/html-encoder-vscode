@@ -10,7 +10,7 @@ type Entry = {
 
 const packageJSON = JSON.parse(readFileSync(`${process.cwd()}/package.json`, 'utf-8'));
 const entries = packageJSON['html-encode'] || [];
-const toTypescript = packageJSON['html-encode-to-ts'] === 'true';
+const toTypescript = !!packageJSON['html-encode-to-ts'];
 
 entries.map((entry: Entry) => {
 	const targets = entry.target ? toArray(entry.target) : false;

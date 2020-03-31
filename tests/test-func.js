@@ -7,6 +7,7 @@ const { writeFileSync } = require('fs');
 function getOutputString(encodedNode, data) {
 	const JSNode = requireFromString(encodedNode).default;
 	JSNode.DOMParser = DOMParser;
+
 	return new JSNode(data).toString();
 }
 

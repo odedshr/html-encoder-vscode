@@ -13,6 +13,14 @@ describe('htmlEncoder: basic operations', () => {
 	it('converts static html', () =>
 		test('<div>Hello <b>World</b></div>', {}, '<div>Hello <b>World</b></div>', 'Got expected results'));
 
+	it('converts a full static html', () =>
+		test(
+			'<!DOCTYPE html><html><body>Hello <b>World</b></body></html>',
+			{},
+			'<!DOCTYPE html><html><body>Hello <b>World</b></body></html>',
+			'Got expected results'
+		));
+
 	it('ignores unknown process instructions', () =>
 		test('<div>Hello <?ignore ?></div>', {}, '<div>Hello <?ignore ?></div>', 'ignored PI'));
 

@@ -2,7 +2,7 @@ import { DOMParser } from 'xmldom';
 import { readFileSync } from 'fs';
 
 export default function htmlEncoder(html: string, isTypescript = false) {
-	const document: Document = domParser.parseFromString(html.replace(/\n\s+>/g,'>'), 'text/xml');
+	const document: Document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
 
 	// console.debug(html.replace(/\n\s+>/g,'>'));
 	const nodeParser = new NodeParser(document);
@@ -21,21 +21,21 @@ function getTemplateFile(isTypescript: boolean) {
 	return `${__dirname}/JSNode.${isTypescript ? 'ts' : 'js'}`;
 }
 
-const domParser = new DOMParser(),
-	NodeType = {
-		Element: 1,
-		Attribute: 2,
-		Text: 3,
-		CDATA: 4,
-		EntityReference: 5,
-		Entity: 6,
-		ProcessingInstruction: 7,
-		Comment: 8,
-		Document: 9,
-		DocumentType: 10,
-		DocumentFragment: 11,
-		Notation: 12
-	};
+const domParser = new DOMParser();
+const NodeType = {
+	Element: 1,
+	Attribute: 2,
+	Text: 3,
+	CDATA: 4,
+	EntityReference: 5,
+	Entity: 6,
+	ProcessingInstruction: 7,
+	Comment: 8,
+	Document: 9,
+	DocumentType: 10,
+	DocumentFragment: 11,
+	Notation: 12
+};
 
 type subRoutineType = 'loop' | 'if';
 
@@ -71,15 +71,21 @@ class SubRoutine {
 
 class NodeParser {
 	rootNode: Document;
-	output: string;
+	output = '';
 
 	constructor(document: Document) {
 		this.rootNode = document;
-		this.output = this._pareseDocument(document.firstChild);
+
+		if (document.firstChild.nodeType === NodeType.DocumentType) {
+			this.output = `${this.parseDocument(document.childNodes.item(1))};
+			${this.parseDocument(document.firstChild)}`;
+		} else {
+			this.output += this.parseDocument(document.firstChild);
+		}
 	}
 
-	_pareseDocument(node: ChildNode): string {
-		const output = this._parseNode(node);
+	private parseDocument(node: ChildNode): string {
+		const output = this.parseNode(node);
 
 		if (output instanceof SubRoutine) {
 			return output.toString();
@@ -90,27 +96,29 @@ class NodeParser {
 		return output;
 	}
 
-	_parseNode(node: ChildNode): string | string[] | SubRoutine {
+	private parseNode(node: ChildNode): string | string[] | SubRoutine {
 		switch (node.nodeType) {
+			case NodeType.DocumentType:
+				return this.parseDocumentType(<DocumentType>node);
 			case NodeType.Document:
 			case NodeType.DocumentFragment:
 				if (node.childNodes.length !== 1) {
 					throw Error('document must have exactly one child');
 				}
 
-				return this._parseNode(node.firstChild);
+				return this.parseNode(node.firstChild);
 			case NodeType.ProcessingInstruction:
-				return this._parseProcessInstruction(<ProcessingInstruction>node);
+				return this.parseProcessInstruction(<ProcessingInstruction>node);
 			case NodeType.Text:
-				return this._parseTextElement(node);
+				return this.parseTextElement(node);
 			case NodeType.Comment:
-				return this._parseCommentElement(node);
+				return this.parseCommentElement(node);
 			default:
-				return this._parseHtmlElement(<HTMLElement>node);
+				return this.parseHtmlElement(<HTMLElement>node);
 		}
 	}
 
-	_parseProcessInstruction(node: ProcessingInstruction): string[] | SubRoutine | null {
+	private parseProcessInstruction(node: ProcessingInstruction): string[] | SubRoutine | null {
 		const tagName = node.target;
 
 		if (tagName.indexOf('?') === 0) {
@@ -153,50 +161,55 @@ class NodeParser {
 		return `elm.appendChild((() => { const node = ${nodeString}; ${addToSetString} return node; })());`;
 	}
 
-	_parseTextElement(node: ChildNode): string {
+	private parseDocumentType(node: DocumentType): string {
+		return `this.setDocumentType('${node.name}','${node.publicId ? node.publicId : ''}','${
+			node.systemId ? node.systemId : ''
+		}')`;
+	}
+
+	private parseTextElement(node: ChildNode): string {
 		return `docElm.createTextNode(\`${node.textContent}\`)`;
 	}
 
-	_parseCommentElement(node: ChildNode): string {
+	private parseCommentElement(node: ChildNode): string {
 		return `docElm.createComment(\`${node.textContent}\`)`;
 	}
 
-	_parseHtmlElement(node: HTMLElement): string {
+	private parseHtmlElement(node: HTMLElement): string {
 		let element: string[] = [`const elm = docElm.createElement('${node.tagName}');`];
 
-		this._parseAttributes(node, element);
-		element.push(...this._parseChildren(node));
+		this.parseAttributes(node, element);
+		element.push(...this.parseChildren(node));
 
-		return this._wrapAndReturnELM(element);
+		return this.wrapAndReturnELM(element);
 	}
 
-	_wrapAndReturnELM(element: string[]) {
+	private wrapAndReturnELM(element: string[]) {
 		return `(() => { ${element.join('\n')}\n return elm; })()`;
 	}
 
-	_parseAttributes(node: HTMLElement, element: string[]) {
+	private parseAttributes(node: HTMLElement, element: string[]) {
 		return Array.from(node.attributes || []).forEach((attr: Attr) => {
-			this._rememberForEasyAccess(attr, element);
+			this.rememberForEasyAccess(attr, element);
 			element.push(`elm.setAttribute('${attr.nodeName}','${attr.nodeValue}')`);
 		});
 	}
 
-	_rememberForEasyAccess(attr: Attr, element: string[]) {
+	private rememberForEasyAccess(attr: Attr, element: string[]) {
 		if (attr.nodeName.toLowerCase() === 'id') {
 			element.push(`this.set['${attr.nodeValue}'] = { node: elm, type: 'attribute' };`);
 		}
 	}
 
-	_parseChildren(node: HTMLElement): string[] {
-		//@ts-ignore
-		const childNodes = Array.from(node.childNodes || [])
+	private parseChildren(node: HTMLElement): string[] {
+		const childNodes = Array.from(node.childNodes || []);
 		const stack: SubRoutine[] = [];
 		let children: string[] = [] as string[];
 
 		// console.debug(`-- parsing ${node.tagName}: ${this._getChildrenDecription(childNodes)}`);
-		
+
 		childNodes.forEach((childNode: ChildNode) => {
-			const parsed = this._parseNode(childNode);
+			const parsed = this.parseNode(childNode);
 
 			if (parsed instanceof SubRoutine) {
 				parsed.parent = children;
@@ -208,7 +221,7 @@ class NodeParser {
 				const subRoutine = stack.pop();
 
 				if (!subRoutine) {
-					throw Error(`end of subRoutine without start: ${this._getChildrenDecription(childNodes)}`)
+					throw Error(`end of subRoutine without start: ${this.getChildrenDecription(childNodes)}`);
 				}
 				children = subRoutine.parent;
 				children.push(subRoutine.toString());
@@ -222,22 +235,24 @@ class NodeParser {
 		return children;
 	}
 
-	_getChildrenDecription(children:ChildNode[]):string {
-		return JSON.stringify(children.map(node=>{
-			switch (node.nodeType) {
-				case NodeType.Document:
-				case NodeType.DocumentFragment:
-					return 'doc'
-				case NodeType.ProcessingInstruction:
-					return (<ProcessingInstruction>node).target;
-				case NodeType.Text:
-					return `t{${node.textContent}}`;
-				case NodeType.Comment:
-					return `t{${node.textContent}}`;
-				default:
-					return (<HTMLElement>node).tagName;
-			};
-		}))
+	private getChildrenDecription(children: ChildNode[]): string {
+		return JSON.stringify(
+			children.map(node => {
+				switch (node.nodeType) {
+					case NodeType.Document:
+					case NodeType.DocumentFragment:
+						return 'doc';
+					case NodeType.ProcessingInstruction:
+						return (<ProcessingInstruction>node).target;
+					case NodeType.Text:
+						return `t{${node.textContent}}`;
+					case NodeType.Comment:
+						return `t{${node.textContent}}`;
+					default:
+						return (<HTMLElement>node).tagName;
+				}
+			})
+		);
 	}
 
 	// value is `condition?attrName=varName`

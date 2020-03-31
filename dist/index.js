@@ -16,7 +16,8 @@ function transpile(parser, isTypescript) {
 function getTemplateFile(isTypescript) {
     return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
 }
-var domParser = new xmldom_1.DOMParser(), NodeType = {
+var domParser = new xmldom_1.DOMParser();
+var NodeType = {
     Element: 1,
     Attribute: 2,
     Text: 3,
@@ -49,11 +50,17 @@ var SubRoutine = /** @class */ (function () {
 }());
 var NodeParser = /** @class */ (function () {
     function NodeParser(document) {
+        this.output = '';
         this.rootNode = document;
-        this.output = this._pareseDocument(document.firstChild);
+        if (document.firstChild.nodeType === NodeType.DocumentType) {
+            this.output = this.parseDocument(document.childNodes.item(1)) + ";\n\t\t\t" + this.parseDocument(document.firstChild);
+        }
+        else {
+            this.output += this.parseDocument(document.firstChild);
+        }
     }
-    NodeParser.prototype._pareseDocument = function (node) {
-        var output = this._parseNode(node);
+    NodeParser.prototype.parseDocument = function (node) {
+        var output = this.parseNode(node);
         if (output instanceof SubRoutine) {
             return output.toString();
         }
@@ -62,25 +69,27 @@ var NodeParser = /** @class */ (function () {
         }
         return output;
     };
-    NodeParser.prototype._parseNode = function (node) {
+    NodeParser.prototype.parseNode = function (node) {
         switch (node.nodeType) {
+            case NodeType.DocumentType:
+                return this.parseDocumentType(node);
             case NodeType.Document:
             case NodeType.DocumentFragment:
                 if (node.childNodes.length !== 1) {
                     throw Error('document must have exactly one child');
                 }
-                return this._parseNode(node.firstChild);
+                return this.parseNode(node.firstChild);
             case NodeType.ProcessingInstruction:
-                return this._parseProcessInstruction(node);
+                return this.parseProcessInstruction(node);
             case NodeType.Text:
-                return this._parseTextElement(node);
+                return this.parseTextElement(node);
             case NodeType.Comment:
-                return this._parseCommentElement(node);
+                return this.parseCommentElement(node);
             default:
-                return this._parseHtmlElement(node);
+                return this.parseHtmlElement(node);
         }
     };
-    NodeParser.prototype._parseProcessInstruction = function (node) {
+    NodeParser.prototype.parseProcessInstruction = function (node) {
         var tagName = node.target;
         if (tagName.indexOf('?') === 0) {
             return new SubRoutine('if', tagName.substring(1));
@@ -116,42 +125,44 @@ var NodeParser = /** @class */ (function () {
         var addToSetString = nodeValue.indexOf('#') === 0 ? "this.set['" + nodeValue.substring(1) + "'] = { node, type: '" + type + "' };" : '';
         return "elm.appendChild((() => { const node = " + nodeString + "; " + addToSetString + " return node; })());";
     };
-    NodeParser.prototype._parseTextElement = function (node) {
+    NodeParser.prototype.parseDocumentType = function (node) {
+        return "this.setDocumentType('" + node.name + "','" + (node.publicId ? node.publicId : '') + "','" + (node.systemId ? node.systemId : '') + "')";
+    };
+    NodeParser.prototype.parseTextElement = function (node) {
         return "docElm.createTextNode(`" + node.textContent + "`)";
     };
-    NodeParser.prototype._parseCommentElement = function (node) {
+    NodeParser.prototype.parseCommentElement = function (node) {
         return "docElm.createComment(`" + node.textContent + "`)";
     };
-    NodeParser.prototype._parseHtmlElement = function (node) {
+    NodeParser.prototype.parseHtmlElement = function (node) {
         var element = ["const elm = docElm.createElement('" + node.tagName + "');"];
-        this._parseAttributes(node, element);
-        element.push.apply(element, this._parseChildren(node));
-        return this._wrapAndReturnELM(element);
+        this.parseAttributes(node, element);
+        element.push.apply(element, this.parseChildren(node));
+        return this.wrapAndReturnELM(element);
     };
-    NodeParser.prototype._wrapAndReturnELM = function (element) {
+    NodeParser.prototype.wrapAndReturnELM = function (element) {
         return "(() => { " + element.join('\n') + "\n return elm; })()";
     };
-    NodeParser.prototype._parseAttributes = function (node, element) {
+    NodeParser.prototype.parseAttributes = function (node, element) {
         var _this = this;
         return Array.from(node.attributes || []).forEach(function (attr) {
-            _this._rememberForEasyAccess(attr, element);
+            _this.rememberForEasyAccess(attr, element);
             element.push("elm.setAttribute('" + attr.nodeName + "','" + attr.nodeValue + "')");
         });
     };
-    NodeParser.prototype._rememberForEasyAccess = function (attr, element) {
+    NodeParser.prototype.rememberForEasyAccess = function (attr, element) {
         if (attr.nodeName.toLowerCase() === 'id') {
             element.push("this.set['" + attr.nodeValue + "'] = { node: elm, type: 'attribute' };");
         }
     };
-    NodeParser.prototype._parseChildren = function (node) {
+    NodeParser.prototype.parseChildren = function (node) {
         var _this = this;
-        //@ts-ignore
         var childNodes = Array.from(node.childNodes || []);
         var stack = [];
         var children = [];
         // console.debug(`-- parsing ${node.tagName}: ${this._getChildrenDecription(childNodes)}`);
         childNodes.forEach(function (childNode) {
-            var parsed = _this._parseNode(childNode);
+            var parsed = _this.parseNode(childNode);
             if (parsed instanceof SubRoutine) {
                 parsed.parent = children;
                 stack.push(parsed);
@@ -161,7 +172,7 @@ var NodeParser = /** @class */ (function () {
             else if (parsed === null) {
                 var subRoutine = stack.pop();
                 if (!subRoutine) {
-                    throw Error("end of subRoutine without start: " + _this._getChildrenDecription(childNodes));
+                    throw Error("end of subRoutine without start: " + _this.getChildrenDecription(childNodes));
                 }
                 children = subRoutine.parent;
                 children.push(subRoutine.toString());
@@ -175,7 +186,7 @@ var NodeParser = /** @class */ (function () {
         });
         return children;
     };
-    NodeParser.prototype._getChildrenDecription = function (children) {
+    NodeParser.prototype.getChildrenDecription = function (children) {
         return JSON.stringify(children.map(function (node) {
             switch (node.nodeType) {
                 case NodeType.Document:
@@ -190,7 +201,6 @@ var NodeParser = /** @class */ (function () {
                 default:
                     return node.tagName;
             }
-            ;
         }));
     };
     // value is `condition?attrName=varName`

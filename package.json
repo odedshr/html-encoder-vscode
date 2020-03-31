@@ -39,17 +39,17 @@
 		"@types/node": "^13.9.5",
 		"@types/xmldom": "^0.1.29",
 		"chokidar": "^3.3.1",
-		"xmldom": "^0.1.27"
+		"xmldom": "^0.1.31"
 	},
 	"deprecated": false,
 	"description": "a CLI for converting HTML to javascript code",
 	"devDependencies": {
 		"assert": "^2.0.0",
-		"assetomat": "^1.0.0",
-		"mocha": "^6.2.1",
+		"assetomat": "^1.1.0",
+		"mocha": "^7.1.1",
 		"require-from-string": "^2.0.2",
-		"typescript": "^3.6.3",
-		"uglify-js": "^3.6.0"
+		"typescript": "^3.8.3",
+		"uglify-js": "^3.8.1"
 	},
 	"homepage": "https://github.com/odedshr/html-encoder#readme",
 	"license": "ISC",
@@ -62,10 +62,11 @@
 	},
 	"scripts": {
 		"build": "npm run copy & tsc",
-		"build:watch": "npm run copy & tsc -w",
-		"copy": "node ./node_modules/assetomat/index.js",
+		"build:watch": "npm run copy:watch & tsc -w",
+		"copy": "node ./node_modules/assetomat/index.js once",
+		"copy:watch": "node ./node_modules/assetomat/index.js",
 		"pretest": "npm run build",
-		"test": "mocha tests/1-simple.test.js",
+		"test": "mocha tests/*.test.js",
 		"start": "node ./dist/cli.js"
 	},
 	"version": "0.3.0"

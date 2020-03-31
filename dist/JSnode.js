@@ -14,9 +14,9 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var JSNodeAbstract = /** @class */ (function () {
-    function JSNodeAbstract() {
+    function JSNodeAbstract(domParserInstance) {
         this.set = {};
-        this.domParser = this._getDOMParser();
+        this.domParser = this.getDOMParser(domParserInstance);
         this.docElm = this.getDocElm();
     }
     JSNodeAbstract.prototype.defineSet = function () {
@@ -28,18 +28,36 @@ var JSNodeAbstract = /** @class */ (function () {
             });
         }
     };
-    JSNodeAbstract.prototype.getDocElm = function () {
-        return typeof document !== 'undefined'
-            ? document
-            : this.domParser.parseFromString('<html></html>', 'text/xml');
+    JSNodeAbstract.prototype.setDocumentType = function (name, publicId, systemId) {
+        var nodeDoctype = this.docElm.implementation.createDocumentType(name, publicId, systemId);
+        if (this.docElm.doctype) {
+            this.docElm.replaceChild(nodeDoctype, this.docElm.doctype);
+        }
+        else {
+            this.docElm.insertBefore(nodeDoctype, this.docElm.childNodes[0]);
+        }
+        // removing empty <html/> and adding this.node instead; I got an error when I tried to use replaceChild here
+        this.docElm.removeChild(this.docElm.childNodes[1]);
+        this.docElm.appendChild(this.node);
+        //@ts-ignore
+        this.node = this.docElm;
     };
-    JSNodeAbstract.prototype._getDOMParser = function () {
+    JSNodeAbstract.prototype.getDocElm = function () {
+        return typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
+    };
+    JSNodeAbstract.prototype.getDOMParser = function (domParserInstance) {
+        if (domParserInstance) {
+            return domParserInstance;
+        }
         var _get = function (item, key) { return item[key]; };
         if (this.constructor.hasOwnProperty('DOMParser')) {
             return new (_get(this.constructor, 'DOMParser'))();
         }
+        if (typeof window !== 'undefined' && window.DOMParser) {
+            return new window.DOMParser();
+        }
         else {
-            return new DOMParser();
+            throw new ReferenceError('DOMParser is not defined');
         }
     };
     JSNodeAbstract.prototype._getSubTemplate = function (templateName) {
@@ -71,9 +89,7 @@ var JSNodeAbstract = /** @class */ (function () {
                             break;
                         case 'html':
                             try {
-                                var newNode = typeof value === 'string'
-                                    ? _this.domParser.parseFromString(value, 'text/xml')
-                                    : value;
+                                var newNode = typeof value === 'string' ? _this.domParser.parseFromString(value, 'text/xml') : value;
                                 return property.node.parentNode.replaceChild(newNode, property.node);
                             }
                             catch (err) {
@@ -118,16 +134,12 @@ var JSNodeAbstract = /** @class */ (function () {
             ? !this._getValue(data, path.substr(1))
             : path
                 .split('.')
-                .reduce(function (ptr, step) {
-                return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
-            }, data);
+                .reduce(function (ptr, step) { return (ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined); }, data);
     };
     JSNodeAbstract.prototype._setValue = function (data, path, value) {
         var pathParts = path.split('.');
         var varName = pathParts.pop();
-        pathParts.reduce(function (ptr, step) {
-            return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
-        }, data)[varName] = value;
+        pathParts.reduce(function (ptr, step) { return (ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined); }, data)[varName] = value;
     };
     JSNodeAbstract.prototype._getHTMLNode = function (htmlString) {
         if (!(typeof htmlString === 'string')) {
@@ -142,22 +154,19 @@ var JSNodeAbstract = /** @class */ (function () {
         }
         try {
             // console.debug ('parsing ', htmlString);
-            return (this.domParser.parseFromString(htmlString, 'text/xml').firstChild);
+            return this.domParser.parseFromString(htmlString, 'text/xml').firstChild;
         }
         catch (err) {
             console.error("failed to parse string: " + htmlString, err);
             return this.docElm.createTextNode(htmlString);
         }
     };
-    JSNodeAbstract.prototype._toString = function () {
-        return this.toString();
-    };
     return JSNodeAbstract;
 }());
 var JSNode = /** @class */ (function (_super) {
     __extends(JSNode, _super);
-    function JSNode(data) {
-        var _this = _super.call(this) || this;
+    function JSNode(data, domParser) {
+        var _this = _super.call(this, domParser) || this;
         _this.data = data;
         //docElm is used by injected code
         var docElm = _this.docElm;
