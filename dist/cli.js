@@ -6,7 +6,7 @@ var chokidar_1 = require("chokidar");
 var index_js_1 = require("./index.js");
 var packageJSON = JSON.parse(fs_1.readFileSync(process.cwd() + "/package.json", 'utf-8'));
 var entries = packageJSON['html-encode'] || [];
-var toTypescript = packageJSON['html-encode-to-ts'] === 'true';
+var toTypescript = !!packageJSON['html-encode-to-ts'];
 entries.map(function (entry) {
     var targets = entry.target ? toArray(entry.target) : false;
     return toArray(entry.source).map(function (source) {

@@ -77,7 +77,7 @@ class NodeParser {
 		this.rootNode = document;
 
 		if (document.firstChild.nodeType === NodeType.DocumentType) {
-			this.output = `${this.parseDocument(document.childNodes.item(1))};
+			this.output = `${this.parseDocument(document.lastChild)};
 			${this.parseDocument(document.firstChild)}`;
 		} else {
 			this.output += this.parseDocument(document.firstChild);

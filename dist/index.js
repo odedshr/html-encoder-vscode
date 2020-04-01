@@ -53,7 +53,7 @@ var NodeParser = /** @class */ (function () {
         this.output = '';
         this.rootNode = document;
         if (document.firstChild.nodeType === NodeType.DocumentType) {
-            this.output = this.parseDocument(document.childNodes.item(1)) + ";\n\t\t\t" + this.parseDocument(document.firstChild);
+            this.output = this.parseDocument(document.lastChild) + ";\n\t\t\t" + this.parseDocument(document.firstChild);
         }
         else {
             this.output += this.parseDocument(document.firstChild);
