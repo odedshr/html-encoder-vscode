@@ -1,26 +1,6 @@
 import { DOMParser } from 'xmldom';
 import { readFileSync } from 'fs';
 
-export default function htmlEncoder(html: string, isTypescript = false) {
-	const document: Document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
-
-	// console.debug(html.replace(/\n\s+>/g,'>'));
-	const nodeParser = new NodeParser(document);
-
-	return transpile(nodeParser, isTypescript);
-}
-
-function transpile(parser: NodeParser, isTypescript: boolean) {
-	return readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(
-		/console\.log\(docElm\)[;,]/,
-		`this.node = ${parser.toString()};`
-	);
-}
-
-function getTemplateFile(isTypescript: boolean) {
-	return `${__dirname}/JSNode.${isTypescript ? 'ts' : 'js'}`;
-}
-
 const domParser = new DOMParser();
 const NodeType = {
 	Element: 1,
@@ -34,7 +14,7 @@ const NodeType = {
 	Document: 9,
 	DocumentType: 10,
 	DocumentFragment: 11,
-	Notation: 12
+	Notation: 12,
 };
 
 type subRoutineType = 'loop' | 'if';
@@ -76,7 +56,9 @@ class NodeParser {
 	constructor(document: Document) {
 		this.rootNode = document;
 
-		if (document.firstChild.nodeType === NodeType.DocumentType) {
+		if (!document || !document.firstChild) {
+			this.output = `docElm.createTextNode('')`;
+		} else if (document.firstChild.nodeType === NodeType.DocumentType) {
 			this.output = `${this.parseDocument(document.lastChild)};
 			${this.parseDocument(document.firstChild)}`;
 		} else {
@@ -139,7 +121,7 @@ class NodeParser {
 					`this._getHTMLNode(this._getValue(this.data, '${tagName.substring(2)}'))`,
 					node.nodeValue,
 					'html'
-				)
+				),
 			];
 		} else if (tagName.indexOf('=') === 0) {
 			return [
@@ -147,7 +129,7 @@ class NodeParser {
 					`docElm.createTextNode(this._getValue(this.data, '${tagName.substring(1)}'))`,
 					node.nodeValue,
 					'text'
-				)
+				),
 			];
 		}
 
@@ -237,7 +219,7 @@ class NodeParser {
 
 	private getChildrenDecription(children: ChildNode[]): string {
 		return JSON.stringify(
-			children.map(node => {
+			children.map((node) => {
 				switch (node.nodeType) {
 					case NodeType.Document:
 					case NodeType.DocumentFragment:
@@ -270,7 +252,7 @@ class NodeParser {
 			liveId = attributes.pop().substring(1);
 		}
 
-		attributes.forEach(attrValue => {
+		attributes.forEach((attrValue) => {
 			const { condition, attrName, varName } = this._parseAttrValue(attrValue);
 
 			if (condition) {
@@ -312,10 +294,10 @@ class NodeParser {
 	_getCssInstructions(classes: string[]) {
 		const instructions = [
 			`{ let tmpElm = this._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',
-		target = tmpCss.length ? tmpCss.split(/\s/) : [];`
+		target = tmpCss.length ? tmpCss.split(/\s/) : [];`,
 		];
 
-		classes.forEach(varValue => {
+		classes.forEach((varValue) => {
 			const { condition, varName } = this._parseCssValue(varValue);
 
 			if (condition) {
@@ -338,4 +320,34 @@ class NodeParser {
 	toString(): string {
 		return this.output;
 	}
+}
+
+// function parseFromString(html: string): Document {
+// 	const res = domParser.parseFromString(html, 'text/xml');
+// 	if (!res) {
+// 		return domParser.parseFromString(`<pre>${html.replace(/\</g, '&lt;')}</pre>`, 'text/xml');
+// 	}
+
+// 	console.log(Object.keys(res));
+// 	return res;
+// }
+
+function transpile(parser: NodeParser, isTypescript: boolean) {
+	return readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(
+		/console\.log\(docElm\)[;,]/,
+		`this.node = ${parser.toString()};`
+	);
+}
+
+function getTemplateFile(isTypescript: boolean) {
+	return `${__dirname}/JSNode.${isTypescript ? 'ts' : 'js'}`;
+}
+
+export default function htmlEncoder(html: string, isTypescript = false) {
+	const document: Document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
+
+	// console.debug(html.replace(/\n\s+>/g,'>'));
+	const nodeParser = new NodeParser(document);
+
+	return transpile(nodeParser, isTypescript);
 }

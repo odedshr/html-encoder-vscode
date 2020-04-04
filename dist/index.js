@@ -2,20 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 var xmldom_1 = require("xmldom");
 var fs_1 = require("fs");
-function htmlEncoder(html, isTypescript) {
-    if (isTypescript === void 0) { isTypescript = false; }
-    var document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
-    // console.debug(html.replace(/\n\s+>/g,'>'));
-    var nodeParser = new NodeParser(document);
-    return transpile(nodeParser, isTypescript);
-}
-exports.default = htmlEncoder;
-function transpile(parser, isTypescript) {
-    return fs_1.readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
-}
-function getTemplateFile(isTypescript) {
-    return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
-}
 var domParser = new xmldom_1.DOMParser();
 var NodeType = {
     Element: 1,
@@ -29,7 +15,7 @@ var NodeType = {
     Document: 9,
     DocumentType: 10,
     DocumentFragment: 11,
-    Notation: 12
+    Notation: 12,
 };
 var SubRoutine = /** @class */ (function () {
     function SubRoutine(type, varName) {
@@ -52,7 +38,10 @@ var NodeParser = /** @class */ (function () {
     function NodeParser(document) {
         this.output = '';
         this.rootNode = document;
-        if (document.firstChild.nodeType === NodeType.DocumentType) {
+        if (!document || !document.firstChild) {
+            this.output = "docElm.createTextNode('')";
+        }
+        else if (document.firstChild.nodeType === NodeType.DocumentType) {
             this.output = this.parseDocument(document.lastChild) + ";\n\t\t\t" + this.parseDocument(document.firstChild);
         }
         else {
@@ -111,12 +100,12 @@ var NodeParser = /** @class */ (function () {
         }
         else if (tagName.indexOf('==') === 0) {
             return [
-                this._getAppendLivableString("this._getHTMLNode(this._getValue(this.data, '" + tagName.substring(2) + "'))", node.nodeValue, 'html')
+                this._getAppendLivableString("this._getHTMLNode(this._getValue(this.data, '" + tagName.substring(2) + "'))", node.nodeValue, 'html'),
             ];
         }
         else if (tagName.indexOf('=') === 0) {
             return [
-                this._getAppendLivableString("docElm.createTextNode(this._getValue(this.data, '" + tagName.substring(1) + "'))", node.nodeValue, 'text')
+                this._getAppendLivableString("docElm.createTextNode(this._getValue(this.data, '" + tagName.substring(1) + "'))", node.nodeValue, 'text'),
             ];
         }
         return ["elm.appendChild(docElm.createProcessingInstruction('" + tagName + "','" + node.nodeValue + "'))"];
@@ -248,7 +237,7 @@ var NodeParser = /** @class */ (function () {
     NodeParser.prototype._getCssInstructions = function (classes) {
         var _this = this;
         var instructions = [
-            "{ let tmpElm = this._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',\n\t\ttarget = tmpCss.length ? tmpCss.split(/s/) : [];"
+            "{ let tmpElm = this._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',\n\t\ttarget = tmpCss.length ? tmpCss.split(/s/) : [];",
         ];
         classes.forEach(function (varValue) {
             var _a = _this._parseCssValue(varValue), condition = _a.condition, varName = _a.varName;
@@ -268,3 +257,25 @@ var NodeParser = /** @class */ (function () {
     };
     return NodeParser;
 }());
+// function parseFromString(html: string): Document {
+// 	const res = domParser.parseFromString(html, 'text/xml');
+// 	if (!res) {
+// 		return domParser.parseFromString(`<pre>${html.replace(/\</g, '&lt;')}</pre>`, 'text/xml');
+// 	}
+// 	console.log(Object.keys(res));
+// 	return res;
+// }
+function transpile(parser, isTypescript) {
+    return fs_1.readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
+}
+function getTemplateFile(isTypescript) {
+    return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
+}
+function htmlEncoder(html, isTypescript) {
+    if (isTypescript === void 0) { isTypescript = false; }
+    var document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
+    // console.debug(html.replace(/\n\s+>/g,'>'));
+    var nodeParser = new NodeParser(document);
+    return transpile(nodeParser, isTypescript);
+}
+exports.default = htmlEncoder;
