@@ -32,7 +32,7 @@ abstract class JSNodeAbstract {
 			Object.defineProperty(this.node, 'set', {
 				value: this._getSetProxy(this.set),
 				configurable: true,
-				writable: true
+				writable: true,
 			});
 		}
 	}
@@ -116,14 +116,14 @@ abstract class JSNodeAbstract {
 					}
 				}
 				return true;
-			}
+			},
 		});
 	}
 
 	_forEach(iteratorName: string, indexName: string, varName: string, fn: Function) {
 		const orig = {
 			iterator: this._getValue(this.data, iteratorName),
-			index: this._getValue(this.data, indexName)
+			index: this._getValue(this.data, indexName),
 		};
 		const list = this._getValue(this.data, varName);
 
@@ -141,7 +141,7 @@ abstract class JSNodeAbstract {
 		const children = Array.from(elm.childNodes);
 		children.reverse();
 
-		return children.find(child => child.nodeType === 1) || elm;
+		return children.find((child) => child.nodeType === 1) || elm;
 	}
 
 	_getValue(data: KeydObject, path: string): any {
@@ -174,7 +174,7 @@ abstract class JSNodeAbstract {
 			return this.docElm.createTextNode(htmlString);
 		} else if (!htmlString.match(/^<(.*?)>.*<\/(\1)>$/)) {
 			// htmlString is text that has html tags in it, we need to wrap it
-			htmlString = `<span>${htmlString}</span>`;
+			htmlString = `<span>${htmlString.replace(/& /g, '&amp; ')}</span>`;
 		}
 
 		try {

@@ -53,7 +53,7 @@
 	},
 	"homepage": "https://github.com/odedshr/html-encoder#readme",
 	"license": "ISC",
-	"main": "./dist/cli.js",
+	"main": "./dist/index.js",
 	"types": "./dist/@types/index.ts.js",
 	"name": "html-encoder",
 	"repository": {

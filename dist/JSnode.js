@@ -24,7 +24,7 @@ var JSNodeAbstract = /** @class */ (function () {
             Object.defineProperty(this.node, 'set', {
                 value: this._getSetProxy(this.set),
                 configurable: true,
-                writable: true
+                writable: true,
             });
         }
     };
@@ -103,13 +103,13 @@ var JSNodeAbstract = /** @class */ (function () {
                     }
                 }
                 return true;
-            }
+            },
         });
     };
     JSNodeAbstract.prototype._forEach = function (iteratorName, indexName, varName, fn) {
         var orig = {
             iterator: this._getValue(this.data, iteratorName),
-            index: this._getValue(this.data, indexName)
+            index: this._getValue(this.data, indexName),
         };
         var list = this._getValue(this.data, varName);
         for (var k in list) {
@@ -150,7 +150,7 @@ var JSNodeAbstract = /** @class */ (function () {
         }
         else if (!htmlString.match(/^<(.*?)>.*<\/(\1)>$/)) {
             // htmlString is text that has html tags in it, we need to wrap it
-            htmlString = "<span>" + htmlString + "</span>";
+            htmlString = "<span>" + htmlString.replace(/& /g, '&amp; ') + "</span>";
         }
         try {
             // console.debug ('parsing ', htmlString);
