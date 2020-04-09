@@ -124,7 +124,7 @@ var JSNodeAbstract = /** @class */ (function () {
         //@ts-ignore
         var children = Array.from(elm.childNodes);
         children.reverse();
-        return children.find(function (child) { return child.nodeType === 1; }) || elm;
+        return (children.find(function (child) { return child.nodeType === 1; }) || elm);
     };
     JSNodeAbstract.prototype._getValue = function (data, path) {
         if (path.match(/^(['"].*(\1))$/)) {

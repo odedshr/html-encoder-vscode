@@ -22,7 +22,7 @@ declare abstract class JSNodeAbstract {
     _getSubTemplate(templateName: string): any;
     _getSetProxy(map: KeydObject): KeydObject;
     _forEach(iteratorName: string, indexName: string, varName: string, fn: Function): void;
-    _getPreceedingOrSelf(elm: HTMLElement): ChildNode;
+    _getPreceedingOrSelf(elm: HTMLElement): HTMLElement;
     _getValue(data: KeydObject, path: string): any;
     _setValue(data: KeydObject, path: string, value: any): void;
     _getHTMLNode(htmlString: string | HTMLElement): HTMLElement | Text;

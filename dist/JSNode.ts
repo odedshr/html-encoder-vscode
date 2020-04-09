@@ -136,12 +136,12 @@ abstract class JSNodeAbstract {
 		this._setValue(this.data, indexName, orig.index);
 	}
 
-	_getPreceedingOrSelf(elm: HTMLElement) {
+	_getPreceedingOrSelf(elm: HTMLElement): HTMLElement {
 		//@ts-ignore
 		const children = Array.from(elm.childNodes);
 		children.reverse();
 
-		return children.find((child) => child.nodeType === 1) || elm;
+		return (children.find((child) => child.nodeType === 1) || elm) as HTMLElement;
 	}
 
 	_getValue(data: KeydObject, path: string): any {
