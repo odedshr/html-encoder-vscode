@@ -51,18 +51,30 @@ class SubRoutine {
 
 class NodeParser {
 	rootNode: Document;
-	output = '';
+	output: string[] = [];
 
 	constructor(document: Document) {
 		this.rootNode = document;
 
 		if (!document || !document.firstChild) {
-			this.output = `docElm.createTextNode('')`;
-		} else if (document.firstChild.nodeType === NodeType.DocumentType) {
-			this.output = `${this.parseDocument(document.lastChild)};
-			${this.parseDocument(document.firstChild)}`;
+			// not content at all
+			this.output.push(`docElm.createDocumentFragment()`);
 		} else {
-			this.output += this.parseDocument(document.firstChild);
+			const children: ChildNode[] = Array.from(document.childNodes);
+			const docType: ChildNode | boolean = children[0].nodeType === NodeType.DocumentType ? children.shift() : false;
+			if (children.length > 1) {
+				this.output.push(
+					this.wrapAndReturnELM([
+						`const elm = docElm.createDocumentFragment()`,
+						...children.map((node) => `elm.appendChild(${this.parseDocument(node)})`),
+					])
+				);
+			} else {
+				this.output.push(this.parseDocument(children.pop()));
+			}
+			if (docType) {
+				this.output.push(this.parseDocument(docType));
+			}
 		}
 	}
 
@@ -318,7 +330,7 @@ class NodeParser {
 	}
 
 	toString(): string {
-		return this.output;
+		return this.output.join(';');
 	}
 }
 

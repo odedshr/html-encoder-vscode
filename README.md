@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/odedshr/html-encoder.svg?branch=master)](https://travis-ci.org/odedshr/html-encoder)
 [![Dependency Status](https://david-dm.org/odedshr/html-encoder.svg?theme=shields.io)](https://david-dm.org/odedshr/html-encoder)
-[![license](http://img.shields.io/badge/license-ISC-brightgreen.svg)](https://github.com/odedshr/-html-encoder/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/license-ISC-brightgreen.svg)](https://github.com/odedshr/html-encoder/blob/master/LICENSE)
 
 ## Overview
 
@@ -44,11 +44,11 @@ in the source folder.
 
 1. Import the library to your code and call the `htmlEncoder()` function:
 
-```javascript
+```typescript
 
 import htmlEncoder = from 'html-encoder';
 
-htmlEncoder(html: string, isTypescript = false);
+const output:string = htmlEncoder(html: string, isTypescript = false);
 
 ```
 
@@ -99,6 +99,7 @@ template.html:
 
 ```javascript
 import Node from './file.template';
+
 console.log(new Node({ parent: 'parent', sibling: 'sibling' }).toString);
 // ouptput: <div class="parent"><b class="sibling">Hello</b></div>
 ```
@@ -106,46 +107,58 @@ console.log(new Node({ parent: 'parent', sibling: 'sibling' }).toString);
 ### Content
 
 a. `<?=text?>` will append a textNode with the html-safe content of the variable `text`.
+
 b. `<?==html?>` will append a parsed node with the content of the variable `html`. The input may be either a text or a pre-compiled node.
 
 ### Conditionals
 
 c. `<??condition>xxx<?/??>` will add its content only if the variable `condition` is truthy.
+
 d. `<??!condition>xxx<?/??>` will add its content only if the variable `condition` is falsy.
 
 ### Loops
 
 e. `<?value@array?><li><?=value?></li></?@?>` will iterate over an array allowing access to its elements.
+
 f. `<?value:key@array?><li><?=key?> <?=value?></li></?@?>`\_ will iterate over an array allowing access to its elements and provide their index-number (starting from zero)
+
 g. `<?value:key@object?><li><?=key?> <?=value?></li></?@?>` will iterate over a key-value object.
 
 ### Attributes
 
 h. `<?attr key=value?>` will set the attribute `key` with the value of `value`.
+
 i. `<?attr key=value key2=value2?>` will set as many attributes as provided.
+
 j. `<?attr map?>` will set a collection of attributes described in the variable `map`
+
 k. `<?attr condition?key=value?>` will set attribute `key` only if the variable `condition` is truthy.
+
 l. `<?attr !condition?key=value?>` will set attribute `key` only if the variable `condition` is falsy.
+
 m. `<?attr condition?map?>` will set a collection of attributes only if the variable `condition` is truthy.
+
 n. `<?attr !condition?map?>` will set a collection of attributes only if the variable `condition` is falsy.
 
 ### CSS Classes
 
 o. _<?css value?>_ will add the css-class or array-of-classes provided in `value`.
+
 p. _<?css condition?value?>_ will add the css-class or array-of-classes provided in `value` if the variable `condition` is truthy.
 
 ## Easy-access to Content
 
 HTML elements with an `id` attribute can easily be acceses at `node.set[id]`, for example:
 
-```html
-
 template.html:
+
+```html
 <button id="cta">Foo</div>
 ```
 
-```javascript
 javascript:
+
+```javascript
 const node = new Node();
 node.set.cta.addEventListener('click', ... );
 
@@ -153,17 +166,18 @@ node.set.cta.addEventListener('click', ... );
 
 text nodes and html nodes that were added using `<?=text ?>` and `<?==html ?>` can also have quick-access, by adding a `#id` suffix. For example:
 
-```html
 template.html:
 
+```html
 <div>
 	Hello
 	<?=firstName #name?>
 </div>
 ```
 
-```javsascript
 javascript:
+
+```javsascript
 const node = new Node({ firstName: 'Adam' });
 console.log(node.toString()); // output `<div>Hello Adam</div>`
 node.live.name = 'Ben';
@@ -178,10 +192,15 @@ console.log(node.toString()); // output `<div>Hello Ben</div>`
 
 it is possible to use existing templates using the `<?:templateNamte?>` command. For example:
 
-```html
 liTemplate:
+
+```html
 <li><?=v?></li>
+```
+
 ulTemplate:
+
+```html
 <ul>
 	<?v@items?><?:liTemplate?><?/@?>
 </ul>
@@ -192,6 +211,8 @@ Javascript:
 ```javsascript
 console.log(new UlTemplate({ items: ['a','b','c'], liTemplate }).toString()) // output:
 ```
+
+Ouput:
 
 ```html
 <ul>
@@ -243,18 +264,9 @@ would have been nice to do so natively but that's just wishful thinking) and thi
 the server and served as a static page (live-refresh is bonus). The `HTML encoder` does exactly that:
 
 1. Write a normal HTML file
-2. Import it to your javascript code using `import Node from './example.template.html';` and then use
-   it by appending it to the DOM -`document.appendChild(new Node());`
+2. Import it to your javascript code using `import Node from './example.template.html';` and then use it by appending it to the DOM -`document.appendChild(new Node());`
 
-Behind the scenes, I use [Rollup](https://rollupjs.org/) plugin capability to detect imported HTML and encoding them to a set of javascript
-commands that are embedded with the Rollup output javascript file. ### Adding dynamic content A guiding principle was to
-write an HTML valid code, but this raised the question - "Where can we place the computational instructions required?"
-and I found the Process Instructions (PI for short). they look a bit ugly I must admit -`<?=value?>`but for the
-proof-of-concept they serve their purpose. Looking at other templating systems such as
-[Vue](https://medium.com/@Pier/vue-js-the-good-the-meh-and-the-ugly-82800bbe6684), the PIs are attributes in the
-elements or new html-invalid elements (i.e. not part of the HTML language). The`<? ... ?>`is a valid HTML element,i
-t should appear as a first child to the element we wish to manipulate or immediately following it (in case of a
-childless element).
+Behind the scenes, I use [Rollup](https://rollupjs.org/) plugin capability to detect imported HTML and encoding them to a set of javascript commands that are embedded with the Rollup output javascript file. ### Adding dynamic content A guiding principle was to write an HTML valid code, but this raised the question - "Where can we place the computational instructions required?" and I found the Process Instructions (PI for short). they look a bit ugly I must admit -`<?=value?>` but for the proof-of-concept they serve their purpose. Looking at other templating systems such as [Vue](https://medium.com/@Pier/vue-js-the-good-the-meh-and-the-ugly-82800bbe6684), the PIs are attributes in the elements or new html-invalid elements (i.e. not part of the HTML language). The `<? ... ?>` is a valid HTML element, it should appear as a first child to the element we wish to manipulate or immediately following it (in case of a childless element).
 
 ## Cheatsheet
 

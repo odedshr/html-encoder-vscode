@@ -13,6 +13,9 @@ describe('htmlEncoder: basic operations', () => {
 	it('converts static html', () =>
 		test('<div>Hello <b>World</b></div>', {}, '<div>Hello <b>World</b></div>', 'Got expected results'));
 
+	it('converts unwrapped multiple html', () =>
+		test('<li>1</li><li>2</li><li>3</li>', {}, '<li>1</li><li>2</li><li>3</li>', 'Got expected results'));
+
 	it('converts a full static html', () =>
 		test(
 			'<!DOCTYPE html><html><body>Hello <b>World</b></body></html>',

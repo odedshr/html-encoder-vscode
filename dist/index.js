@@ -1,4 +1,11 @@
 "use strict";
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var xmldom_1 = require("xmldom");
 var fs_1 = require("fs");
@@ -36,16 +43,27 @@ var SubRoutine = /** @class */ (function () {
 }());
 var NodeParser = /** @class */ (function () {
     function NodeParser(document) {
-        this.output = '';
+        var _this = this;
+        this.output = [];
         this.rootNode = document;
         if (!document || !document.firstChild) {
-            this.output = "docElm.createTextNode('')";
-        }
-        else if (document.firstChild.nodeType === NodeType.DocumentType) {
-            this.output = this.parseDocument(document.lastChild) + ";\n\t\t\t" + this.parseDocument(document.firstChild);
+            // not content at all
+            this.output.push("docElm.createDocumentFragment()");
         }
         else {
-            this.output += this.parseDocument(document.firstChild);
+            var children = Array.from(document.childNodes);
+            var docType = children[0].nodeType === NodeType.DocumentType ? children.shift() : false;
+            if (children.length > 1) {
+                this.output.push(this.wrapAndReturnELM(__spreadArrays([
+                    "const elm = docElm.createDocumentFragment()"
+                ], children.map(function (node) { return "elm.appendChild(" + _this.parseDocument(node) + ")"; }))));
+            }
+            else {
+                this.output.push(this.parseDocument(children.pop()));
+            }
+            if (docType) {
+                this.output.push(this.parseDocument(docType));
+            }
         }
     }
     NodeParser.prototype.parseDocument = function (node) {
@@ -253,7 +271,7 @@ var NodeParser = /** @class */ (function () {
         return instructions;
     };
     NodeParser.prototype.toString = function () {
-        return this.output;
+        return this.output.join(';');
     };
     return NodeParser;
 }());

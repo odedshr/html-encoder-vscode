@@ -11,7 +11,7 @@ function getOutputString(encodedNode, data) {
 	return new JSNode(data).toString();
 }
 
-function test(originalString, data = {}, expectedString, description, testFileName = false) {
+function test(originalString, data = {}, expectedString, description, testFileName = undefined) {
 	const encodedNode = htmlEncoder(originalString);
 
 	try {
