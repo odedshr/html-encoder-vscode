@@ -43,13 +43,17 @@ var JSNodeAbstract = /** @class */ (function () {
         this.node = this.docElm;
     };
     JSNodeAbstract.prototype.getDocElm = function () {
-        return typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
+        return typeof document !== 'undefined'
+            ? document
+            : this.domParser.parseFromString('<html></html>', 'text/xml');
     };
     JSNodeAbstract.prototype.getDOMParser = function (domParserInstance) {
         if (domParserInstance) {
             return domParserInstance;
         }
-        var _get = function (item, key) { return item[key]; };
+        var _get = function (item, key) {
+            return item[key];
+        };
         if (this.constructor.hasOwnProperty('DOMParser')) {
             return new (_get(this.constructor, 'DOMParser'))();
         }
@@ -65,7 +69,7 @@ var JSNodeAbstract = /** @class */ (function () {
         return new Template(this.data);
     };
     JSNodeAbstract.prototype._getSetProxy = function (map) {
-        var _this = this;
+        var domParser = this.domParser;
         return new Proxy(map, {
             get: function (map, prop) {
                 var property = map[prop];
@@ -89,7 +93,9 @@ var JSNodeAbstract = /** @class */ (function () {
                             break;
                         case 'html':
                             try {
-                                var newNode = typeof value === 'string' ? _this.domParser.parseFromString(value, 'text/xml') : value;
+                                var newNode = typeof value === 'string'
+                                    ? domParser.parseFromString(value, 'text/xml')
+                                    : value;
                                 return property.node.parentNode.replaceChild(newNode, property.node);
                             }
                             catch (err) {
@@ -124,7 +130,9 @@ var JSNodeAbstract = /** @class */ (function () {
         //@ts-ignore
         var children = Array.from(elm.childNodes);
         children.reverse();
-        return (children.find(function (child) { return child.nodeType === 1; }) || elm);
+        return (children.find(function (child) {
+            return child.nodeType === 1;
+        }) || elm);
     };
     JSNodeAbstract.prototype._getValue = function (data, path) {
         if (path.match(/^(['"].*(\1))$/)) {
@@ -132,14 +140,16 @@ var JSNodeAbstract = /** @class */ (function () {
         }
         return path[0] === '!'
             ? !this._getValue(data, path.substr(1))
-            : path
-                .split('.')
-                .reduce(function (ptr, step) { return (ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined); }, data);
+            : path.split('.').reduce(function (ptr, step) {
+                return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
+            }, data);
     };
     JSNodeAbstract.prototype._setValue = function (data, path, value) {
         var pathParts = path.split('.');
         var varName = pathParts.pop();
-        pathParts.reduce(function (ptr, step) { return (ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined); }, data)[varName] = value;
+        pathParts.reduce(function (ptr, step) {
+            return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
+        }, data)[varName] = value;
     };
     JSNodeAbstract.prototype._getHTMLNode = function (htmlString) {
         if (!(typeof htmlString === 'string')) {
@@ -154,7 +164,7 @@ var JSNodeAbstract = /** @class */ (function () {
         }
         try {
             // console.debug ('parsing ', htmlString);
-            return this.domParser.parseFromString(htmlString, 'text/xml').firstChild;
+            return (this.domParser.parseFromString(htmlString, 'text/xml').firstChild);
         }
         catch (err) {
             console.error("failed to parse string: " + htmlString, err);
@@ -168,6 +178,7 @@ var JSNode = /** @class */ (function (_super) {
     function JSNode(data, domParser) {
         var _this = _super.call(this, domParser) || this;
         _this.data = data;
+        var self = _this;
         //docElm is used by injected code
         var docElm = _this.docElm;
         // main code goes here:

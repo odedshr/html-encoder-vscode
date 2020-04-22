@@ -34,9 +34,9 @@ var SubRoutine = /** @class */ (function () {
         switch (this.type) {
             case 'loop':
                 var _a = this.varName.split('@'), iteratorAndIndex = _a[0], varName = _a[1], _b = iteratorAndIndex.split(':'), iterator = _b[0], _c = _b[1], index = _c === void 0 ? '$i' : _c;
-                return "this._forEach('" + iterator + "', '" + index + "','" + varName + "', () => {\n\t\t\t\t\t" + this.children.join('\n') + "\n\t\t\t\t});";
+                return "self._forEach('" + iterator + "', '" + index + "','" + varName + "', function() {\n\t\t\t\t\t" + this.children.join('\n') + "\n\t\t\t\t});";
             case 'if':
-                return "\n\t\t\t\t\tif (this._getValue(this.data, '" + this.varName + "')) {\n\t\t\t\t\t\t" + this.children.join('\n') + "\n\t\t\t\t\t}";
+                return "\n\t\t\t\t\tif (self._getValue(self.data, '" + this.varName + "')) {\n\t\t\t\t\t\t" + this.children.join('\n') + "\n\t\t\t\t\t}";
         }
     };
     return SubRoutine;
@@ -52,7 +52,9 @@ var NodeParser = /** @class */ (function () {
         }
         else {
             var children = Array.from(document.childNodes);
-            var docType = children[0].nodeType === NodeType.DocumentType ? children.shift() : false;
+            var docType = children[0].nodeType === NodeType.DocumentType
+                ? children.shift()
+                : false;
             if (children.length > 1) {
                 this.output.push(this.wrapAndReturnELM(__spreadArrays([
                     "const elm = docElm.createDocumentFragment()"
@@ -114,26 +116,32 @@ var NodeParser = /** @class */ (function () {
             return this._getCssInstructions(node.nodeValue.split(/\s/));
         }
         else if (tagName.indexOf(':') === 0) {
-            return ["elm.appendChild(this._getSubTemplate('" + tagName.substring(1) + "'))"];
+            return [
+                "elm.appendChild(self._getSubTemplate('" + tagName.substring(1) + "'))",
+            ];
         }
         else if (tagName.indexOf('==') === 0) {
             return [
-                this._getAppendLivableString("this._getHTMLNode(this._getValue(this.data, '" + tagName.substring(2) + "'))", node.nodeValue, 'html'),
+                this._getAppendLivableString("self._getHTMLNode(self._getValue(self.data, '" + tagName.substring(2) + "'))", node.nodeValue, 'html'),
             ];
         }
         else if (tagName.indexOf('=') === 0) {
             return [
-                this._getAppendLivableString("docElm.createTextNode(this._getValue(this.data, '" + tagName.substring(1) + "'))", node.nodeValue, 'text'),
+                this._getAppendLivableString("docElm.createTextNode(self._getValue(self.data, '" + tagName.substring(1) + "'))", node.nodeValue, 'text'),
             ];
         }
-        return ["elm.appendChild(docElm.createProcessingInstruction('" + tagName + "','" + node.nodeValue + "'))"];
+        return [
+            "elm.appendChild(docElm.createProcessingInstruction('" + tagName + "','" + node.nodeValue + "'))",
+        ];
     };
     NodeParser.prototype._getAppendLivableString = function (nodeString, nodeValue, type) {
-        var addToSetString = nodeValue.indexOf('#') === 0 ? "this.set['" + nodeValue.substring(1) + "'] = { node, type: '" + type + "' };" : '';
-        return "elm.appendChild((() => { const node = " + nodeString + "; " + addToSetString + " return node; })());";
+        var addToSetString = nodeValue.indexOf('#') === 0
+            ? "self.set['" + nodeValue.substring(1) + "'] = { node, type: '" + type + "' };"
+            : '';
+        return "elm.appendChild((function () { const node = " + nodeString + "; " + addToSetString + " return node; })());";
     };
     NodeParser.prototype.parseDocumentType = function (node) {
-        return "this.setDocumentType('" + node.name + "','" + (node.publicId ? node.publicId : '') + "','" + (node.systemId ? node.systemId : '') + "')";
+        return "self.setDocumentType('" + node.name + "','" + (node.publicId ? node.publicId : '') + "','" + (node.systemId ? node.systemId : '') + "')";
     };
     NodeParser.prototype.parseTextElement = function (node) {
         return "docElm.createTextNode(`" + node.textContent + "`)";
@@ -142,13 +150,15 @@ var NodeParser = /** @class */ (function () {
         return "docElm.createComment(`" + node.textContent + "`)";
     };
     NodeParser.prototype.parseHtmlElement = function (node) {
-        var element = ["const elm = docElm.createElement('" + node.tagName + "');"];
+        var element = [
+            "const elm = docElm.createElement('" + node.tagName + "');",
+        ];
         this.parseAttributes(node, element);
         element.push.apply(element, this.parseChildren(node));
         return this.wrapAndReturnELM(element);
     };
     NodeParser.prototype.wrapAndReturnELM = function (element) {
-        return "(() => { " + element.join('\n') + "\n return elm; })()";
+        return "(function () { " + element.join('\n') + "\n return elm; })()";
     };
     NodeParser.prototype.parseAttributes = function (node, element) {
         var _this = this;
@@ -159,7 +169,7 @@ var NodeParser = /** @class */ (function () {
     };
     NodeParser.prototype.rememberForEasyAccess = function (attr, element) {
         if (attr.nodeName.toLowerCase() === 'id') {
-            element.push("this.set['" + attr.nodeValue + "'] = { node: elm, type: 'attribute' };");
+            element.push("self.set['" + attr.nodeValue + "'] = { node: elm, type: 'attribute' };");
         }
     };
     NodeParser.prototype.parseChildren = function (node) {
@@ -217,7 +227,9 @@ var NodeParser = /** @class */ (function () {
     };
     NodeParser.prototype._getAttributeInstructions = function (attributes) {
         var _this = this;
-        var instructions = ['{ let node = this._getPreceedingOrSelf(elm), tmpAttrs;'];
+        var instructions = [
+            '{ let node = self._getPreceedingOrSelf(elm), tmpAttrs;',
+        ];
         var liveId;
         if (attributes[attributes.length - 1].indexOf('#') === 0) {
             liveId = attributes.pop().substring(1);
@@ -225,19 +237,19 @@ var NodeParser = /** @class */ (function () {
         attributes.forEach(function (attrValue) {
             var _a = _this._parseAttrValue(attrValue), condition = _a.condition, attrName = _a.attrName, varName = _a.varName;
             if (condition) {
-                instructions.push("if (this._getValue(this.data, '" + condition + "')) {");
+                instructions.push("if (self._getValue(self.data, '" + condition + "')) {");
             }
             if (varName) {
-                instructions.push("node.setAttribute('" + attrName + "', this._getValue(this.data, '" + varName.replace(/[\'"]/g, "\\'") + "'));");
+                instructions.push("node.setAttribute('" + attrName + "', self._getValue(self.data, '" + varName.replace(/[\'"]/g, "\\'") + "'));");
                 if (liveId) {
-                    instructions.push("this.set['" + liveId + "#" + attrName + "'] = { node, type: 'attribute', 'attrName': '" + attrName + "'}");
+                    instructions.push("self.set['" + liveId + "#" + attrName + "'] = { node, type: 'attribute', 'attrName': '" + attrName + "'}");
                 }
             }
             else {
                 var addToLiveList = liveId
-                    ? "this.set[`" + liveId + "#${k}`] = { node, type: 'attribute', 'attrName': k };"
+                    ? "self.set[`" + liveId + "#${k}`] = { node, type: 'attribute', 'attrName': k };"
                     : '';
-                instructions.push("tmpAttrs = this._getValue(this.data, '" + attrName + "');");
+                instructions.push("tmpAttrs = self._getValue(self.data, '" + attrName + "');");
                 instructions.push("for (let k in tmpAttrs) { node.setAttribute(k, tmpAttrs[k]);" + addToLiveList + " }");
             }
             if (condition) {
@@ -255,14 +267,14 @@ var NodeParser = /** @class */ (function () {
     NodeParser.prototype._getCssInstructions = function (classes) {
         var _this = this;
         var instructions = [
-            "{ let tmpElm = this._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',\n\t\ttarget = tmpCss.length ? tmpCss.split(/s/) : [];",
+            "{ let tmpElm = self._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',\n\t\ttarget = tmpCss.length ? tmpCss.split(/s/) : [];",
         ];
         classes.forEach(function (varValue) {
             var _a = _this._parseCssValue(varValue), condition = _a.condition, varName = _a.varName;
             if (condition) {
-                instructions.push("if (this._getValue(this.data, '" + condition + "')) {");
+                instructions.push("if (self._getValue(self.data, '" + condition + "')) {");
             }
-            instructions.push("tmpCss = this._getValue(this.data, '" + varName + "');\n\t\t\t\t(Array.isArray(tmpCss) ? tmpCss : [tmpCss]).forEach(css => target.push(css));\n\t\t\t");
+            instructions.push("tmpCss = self._getValue(self.data, '" + varName + "');\n\t\t\t\t(Array.isArray(tmpCss) ? tmpCss : [tmpCss]).forEach(function (css) { target.push(css); });\n\t\t\t");
             if (condition) {
                 instructions.push('}');
             }
@@ -284,7 +296,9 @@ var NodeParser = /** @class */ (function () {
 // 	return res;
 // }
 function transpile(parser, isTypescript) {
-    return fs_1.readFileSync(getTemplateFile(isTypescript), { encoding: 'utf-8' }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
+    return fs_1.readFileSync(getTemplateFile(isTypescript), {
+        encoding: 'utf-8',
+    }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
 }
 function getTemplateFile(isTypescript) {
     return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
