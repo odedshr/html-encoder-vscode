@@ -43,7 +43,9 @@ var JSNodeAbstract = /** @class */ (function () {
         this.node = this.docElm;
     };
     JSNodeAbstract.prototype.getDocElm = function () {
-        return typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
+        return typeof document !== 'undefined'
+            ? document
+            : this.domParser.parseFromString('<html></html>', 'text/xml');
     };
     JSNodeAbstract.prototype.getDOMParser = function (domParserInstance) {
         if (domParserInstance) {
@@ -91,7 +93,9 @@ var JSNodeAbstract = /** @class */ (function () {
                             break;
                         case 'html':
                             try {
-                                var newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
+                                var newNode = typeof value === 'string'
+                                    ? domParser.parseFromString(value, 'text/xml')
+                                    : value;
                                 return property.node.parentNode.replaceChild(newNode, property.node);
                             }
                             catch (err) {
@@ -160,7 +164,7 @@ var JSNodeAbstract = /** @class */ (function () {
         }
         try {
             // console.debug ('parsing ', htmlString);
-            return this.domParser.parseFromString(htmlString, 'text/xml').firstChild;
+            return (this.domParser.parseFromString(htmlString, 'text/xml').firstChild);
         }
         catch (err) {
             console.error("failed to parse string: " + htmlString, err);

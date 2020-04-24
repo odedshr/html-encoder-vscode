@@ -9,8 +9,12 @@ declare var DOMParser: {
     new (): DOMParser;
 };
 declare abstract class JSNodeAbstract {
-    set: object;
-    data: object;
+    set: {
+        [key: string]: any;
+    };
+    data: {
+        [key: string]: any;
+    };
     node: ChildNode;
     domParser: DOMParser;
     docElm: Document;
