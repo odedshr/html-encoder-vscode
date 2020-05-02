@@ -1,53 +1,27 @@
 "use strict";
-var __extends = (this && this.__extends) || (function () {
-    var extendStatics = function (d, b) {
-        extendStatics = Object.setPrototypeOf ||
-            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
-        return extendStatics(d, b);
-    };
-    return function (d, b) {
-        extendStatics(d, b);
-        function __() { this.constructor = d; }
-        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-    };
-})();
 Object.defineProperty(exports, "__esModule", { value: true });
-var JSNodeAbstract = /** @class */ (function () {
-    function JSNodeAbstract(domParserInstance) {
+var JSNode = /** @class */ (function () {
+    function JSNode(data, domParserInstance) {
+        var _this = this;
         this.set = {};
         this.domParser = this.getDOMParser(domParserInstance);
         this.docElm = this.getDocElm();
+        this.data = data;
+        var self = this;
+        //docElm is used by injected code
+        var docElm = this.docElm;
+        // main code goes here:
+        //@ts-ignore returned value might be DocumentFragment which isn't a childNode, which might cause tsc to complain
+        console.log(self, docElm);
+        // end of main code
+        var originalToString = this.node.toString;
+        this.node.toString = function () { return fixHTMLTags(originalToString.call(_this.node)); };
+        return this.node;
     }
-    JSNodeAbstract.prototype.defineSet = function () {
-        if (Object.keys(this.set).length) {
-            Object.defineProperty(this.node, 'set', {
-                value: this._getSetProxy(this.set),
-                configurable: true,
-                writable: true,
-            });
-        }
+    JSNode.prototype.getDocElm = function () {
+        return typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
     };
-    JSNodeAbstract.prototype.setDocumentType = function (name, publicId, systemId) {
-        var nodeDoctype = this.docElm.implementation.createDocumentType(name, publicId, systemId);
-        if (this.docElm.doctype) {
-            this.docElm.replaceChild(nodeDoctype, this.docElm.doctype);
-        }
-        else {
-            this.docElm.insertBefore(nodeDoctype, this.docElm.childNodes[0]);
-        }
-        // removing empty <html/> and adding this.node instead; I got an error when I tried to use replaceChild here
-        this.docElm.removeChild(this.docElm.childNodes[1]);
-        this.docElm.appendChild(this.node);
-        //@ts-ignore
-        this.node = this.docElm;
-    };
-    JSNodeAbstract.prototype.getDocElm = function () {
-        return typeof document !== 'undefined'
-            ? document
-            : this.domParser.parseFromString('<html></html>', 'text/xml');
-    };
-    JSNodeAbstract.prototype.getDOMParser = function (domParserInstance) {
+    JSNode.prototype.getDOMParser = function (domParserInstance) {
         if (domParserInstance) {
             return domParserInstance;
         }
@@ -64,11 +38,33 @@ var JSNodeAbstract = /** @class */ (function () {
             throw new ReferenceError('DOMParser is not defined');
         }
     };
-    JSNodeAbstract.prototype._getSubTemplate = function (templateName) {
-        var Template = this._getValue(this.data, templateName);
-        return new Template(this.data);
+    // feature _setDocumentType
+    JSNode.prototype._setDocumentType = function (name, publicId, systemId) {
+        var nodeDoctype = this.docElm.implementation.createDocumentType(name, publicId, systemId);
+        if (this.docElm.doctype) {
+            this.docElm.replaceChild(nodeDoctype, this.docElm.doctype);
+        }
+        else {
+            this.docElm.insertBefore(nodeDoctype, this.docElm.childNodes[0]);
+        }
+        // removing empty <html/> and adding this.node instead; I got an error when I tried to use replaceChild here
+        this.docElm.removeChild(this.docElm.childNodes[1]);
+        this.docElm.appendChild(this.node);
+        //@ts-ignore
+        this.node = this.docElm;
     };
-    JSNodeAbstract.prototype._getSetProxy = function (map) {
+    // feature _setDocumentType end
+    // feature _defineSet
+    JSNode.prototype._defineSet = function () {
+        if (Object.keys(this.set).length) {
+            Object.defineProperty(this.node, 'set', {
+                value: this._getSetProxy(this.set),
+                configurable: true,
+                writable: true,
+            });
+        }
+    };
+    JSNode.prototype._getSetProxy = function (map) {
         var domParser = this.domParser;
         return new Proxy(map, {
             get: function (map, prop) {
@@ -93,9 +89,7 @@ var JSNodeAbstract = /** @class */ (function () {
                             break;
                         case 'html':
                             try {
-                                var newNode = typeof value === 'string'
-                                    ? domParser.parseFromString(value, 'text/xml')
-                                    : value;
+                                var newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
                                 return property.node.parentNode.replaceChild(newNode, property.node);
                             }
                             catch (err) {
@@ -112,21 +106,33 @@ var JSNodeAbstract = /** @class */ (function () {
             },
         });
     };
-    JSNodeAbstract.prototype._forEach = function (iteratorName, indexName, varName, fn) {
+    // feature _defineSet end
+    // feature _getSubTemplate
+    JSNode.prototype._getSubTemplate = function (templateName) {
+        var self = this;
+        var Template = self._getValue(this.data, templateName);
+        return new Template(this.data);
+    };
+    // feature _getSubTemplate end
+    // feature _forEach
+    JSNode.prototype._forEach = function (iteratorName, indexName, varName, fn) {
+        var self = this;
         var orig = {
-            iterator: this._getValue(this.data, iteratorName),
-            index: this._getValue(this.data, indexName),
+            iterator: self._getValue(this.data, iteratorName),
+            index: self._getValue(this.data, indexName),
         };
-        var list = this._getValue(this.data, varName);
+        var list = self._getValue(this.data, varName);
         for (var k in list) {
-            this._setValue(this.data, indexName, k);
-            this._setValue(this.data, iteratorName, list[k]);
+            self._setValue(this.data, indexName, k);
+            self._setValue(this.data, iteratorName, list[k]);
             fn();
         }
-        this._setValue(this.data, iteratorName, orig.iterator);
-        this._setValue(this.data, indexName, orig.index);
+        self._setValue(this.data, iteratorName, orig.iterator);
+        self._setValue(this.data, indexName, orig.index);
     };
-    JSNodeAbstract.prototype._getPreceedingOrSelf = function (elm) {
+    // feature _forEach end
+    // feature _getPreceedingOrSelf
+    JSNode.prototype._getPreceedingOrSelf = function (elm) {
         //@ts-ignore
         var children = Array.from(elm.childNodes);
         children.reverse();
@@ -134,7 +140,9 @@ var JSNodeAbstract = /** @class */ (function () {
             return child.nodeType === 1;
         }) || elm);
     };
-    JSNodeAbstract.prototype._getValue = function (data, path) {
+    // feature _getPreceedingOrSelf end
+    // feature _getValue
+    JSNode.prototype._getValue = function (data, path) {
         if (path.match(/^(['"].*(\1))$/)) {
             return path.substring(1, path.length - 1);
         }
@@ -144,14 +152,18 @@ var JSNodeAbstract = /** @class */ (function () {
                 return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
             }, data);
     };
-    JSNodeAbstract.prototype._setValue = function (data, path, value) {
+    // feature _getValue end
+    // feature _setValue
+    JSNode.prototype._setValue = function (data, path, value) {
         var pathParts = path.split('.');
         var varName = pathParts.pop();
         pathParts.reduce(function (ptr, step) {
             return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
         }, data)[varName] = value;
     };
-    JSNodeAbstract.prototype._getHTMLNode = function (htmlString) {
+    // feature _setValue end
+    // feature _getHTMLNode
+    JSNode.prototype._getHTMLNode = function (htmlString) {
         if (!(typeof htmlString === 'string')) {
             return htmlString;
         }
@@ -164,30 +176,16 @@ var JSNodeAbstract = /** @class */ (function () {
         }
         try {
             // console.debug ('parsing ', htmlString);
-            return (this.domParser.parseFromString(htmlString, 'text/xml').firstChild);
+            return this.domParser.parseFromString(htmlString, 'text/xml').firstChild;
         }
         catch (err) {
             console.error("failed to parse string: " + htmlString, err);
             return this.docElm.createTextNode(htmlString);
         }
     };
-    return JSNodeAbstract;
-}());
-var JSNode = /** @class */ (function (_super) {
-    __extends(JSNode, _super);
-    function JSNode(data, domParser) {
-        var _this = _super.call(this, domParser) || this;
-        _this.data = data;
-        var self = _this;
-        //docElm is used by injected code
-        var docElm = _this.docElm;
-        // main code goes here:
-        //@ts-ignore returned value might be DocumentFragment which isn't a childNode, which might cause tsc to complain
-        console.log(docElm);
-        // end of main code
-        _this.defineSet();
-        return _this.node;
-    }
     return JSNode;
-}(JSNodeAbstract));
+}());
 exports.default = JSNode;
+function fixHTMLTags(xmlString) {
+    return xmlString.replace(/\<(?!area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)([a-z|A-Z|_|\-|:|0-9]+)([^>]*)\/\>/, '<$1$2></$1>');
+}

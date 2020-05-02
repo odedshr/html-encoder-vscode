@@ -8,7 +8,7 @@ declare var DOMParser: {
     prototype: DOMParser;
     new (): DOMParser;
 };
-declare abstract class JSNodeAbstract {
+export default class JSNode {
     set: {
         [key: string]: any;
     };
@@ -18,20 +18,17 @@ declare abstract class JSNodeAbstract {
     node: ChildNode;
     domParser: DOMParser;
     docElm: Document;
-    constructor(domParserInstance?: DOMParser);
-    protected defineSet(): void;
-    protected setDocumentType(name: string, publicId: string, systemId: string): void;
+    constructor(data: object, domParserInstance?: DOMParser);
     private getDocElm;
     private getDOMParser;
-    _getSubTemplate(templateName: string): any;
+    protected _setDocumentType(name: string, publicId: string, systemId: string): void;
+    protected _defineSet(): void;
     _getSetProxy(map: KeydObject): KeydObject;
+    _getSubTemplate(templateName: string): any;
     _forEach(iteratorName: string, indexName: string, varName: string, fn: Function): void;
     _getPreceedingOrSelf(elm: HTMLElement): HTMLElement;
     _getValue(data: KeydObject, path: string): any;
     _setValue(data: KeydObject, path: string, value: any): void;
     _getHTMLNode(htmlString: string | HTMLElement): HTMLElement | Text;
-}
-export default class JSNode extends JSNodeAbstract {
-    constructor(data: object, domParser?: DOMParser);
 }
 export {};

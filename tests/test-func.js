@@ -4,11 +4,13 @@ const requireFromString = require('require-from-string');
 const htmlEncoder = require('../dist/index').default;
 const { writeFileSync } = require('fs');
 
+const domParser = new DOMParser();
+
 function getOutputString(encodedNode, data) {
 	const JSNode = requireFromString(encodedNode).default;
-	JSNode.DOMParser = DOMParser;
+	const jsNode = new JSNode(data, domParser);
 
-	return new JSNode(data).toString();
+	return jsNode.toString();
 }
 
 function test(originalString, data = {}, expectedString, description, testFileName = undefined) {

@@ -45,7 +45,7 @@
 	"description": "a CLI for converting HTML to javascript code",
 	"devDependencies": {
 		"assert": "^2.0.0",
-		"assetomat": "^1.1.0",
+		"assetomat": "^1.1.1",
 		"mocha": "^7.1.1",
 		"require-from-string": "^2.0.2",
 		"typescript": "^3.8.3",

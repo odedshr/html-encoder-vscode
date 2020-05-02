@@ -13,6 +13,14 @@ describe('htmlEncoder: basic operations', () => {
 	it('converts static html', () =>
 		test('<div>Hello <b>World</b></div>', {}, '<div>Hello <b>World</b></div>', 'Got expected results'));
 
+	it('handles empty elements properly', () =>
+		test(
+			'<div><script></script><article></article><aside>sidebar</aside><br/><img/></div>',
+			{},
+			'<div><script></script><article/><aside>sidebar</aside><br/><img/></div>',
+			'Got expected results'
+		));
+
 	it('converts unwrapped multiple html', () =>
 		test('<li>1</li><li>2</li><li>3</li>', {}, '<li>1</li><li>2</li><li>3</li>', 'Got expected results'));
 

@@ -24,6 +24,42 @@ var NodeType = {
     DocumentFragment: 11,
     Notation: 12,
 };
+function htmlEncoder(html, isTypescript) {
+    if (isTypescript === void 0) { isTypescript = false; }
+    var document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
+    return treeShake(transpile(new NodeParser(document), isTypescript));
+}
+exports.default = htmlEncoder;
+function getTemplateFile(isTypescript) {
+    return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
+}
+function transpile(parser, isTypescript) {
+    var transpiledString = parser.toString();
+    if (transpiledString.indexOf('self.set') > -1) {
+        transpiledString += ";self._defineSet();";
+    }
+    return fs_1.readFileSync(getTemplateFile(isTypescript), {
+        encoding: 'utf-8',
+    }).replace(/console\.log\(self, docElm\)[;,]/, "this.node = " + transpiledString + ";");
+}
+function treeShake(code) {
+    findFeatures(code).forEach(function (feature) {
+        var query = code.indexOf("self." + feature) === -1
+            ? "\\s*// feature " + feature + "\\n[\\s\\S]*?// feature " + feature + " end\n"
+            : "\\s*// feature " + feature + "( end)?\\n";
+        code = code.replace(new RegExp(query, 'gm'), '');
+    });
+    return code;
+}
+function findFeatures(code) {
+    var featureFinder = /\s*\/\/ feature (_\w*) end\n/g; // /^\t*\/\/ (_\w*)$/g;
+    var features = [];
+    var match;
+    while ((match = featureFinder.exec(code)) !== null) {
+        features.push(match[1]);
+    }
+    return features;
+}
 var SubRoutine = /** @class */ (function () {
     function SubRoutine(type, varName) {
         this.type = type;
@@ -52,9 +88,7 @@ var NodeParser = /** @class */ (function () {
         }
         else {
             var children = Array.from(document.childNodes);
-            var docType = children[0].nodeType === NodeType.DocumentType
-                ? children.shift()
-                : false;
+            var docType = children[0].nodeType === NodeType.DocumentType ? children.shift() : false;
             if (children.length > 1) {
                 this.output.push(this.wrapAndReturnELM(__spreadArrays([
                     "const elm = docElm.createDocumentFragment()"
@@ -116,9 +150,7 @@ var NodeParser = /** @class */ (function () {
             return this._getCssInstructions(node.nodeValue.split(/\s/));
         }
         else if (tagName.indexOf(':') === 0) {
-            return [
-                "elm.appendChild(self._getSubTemplate('" + tagName.substring(1) + "'))",
-            ];
+            return ["elm.appendChild(self._getSubTemplate('" + tagName.substring(1) + "'))"];
         }
         else if (tagName.indexOf('==') === 0) {
             return [
@@ -130,18 +162,14 @@ var NodeParser = /** @class */ (function () {
                 this._getAppendLivableString("docElm.createTextNode(self._getValue(self.data, '" + tagName.substring(1) + "'))", node.nodeValue, 'text'),
             ];
         }
-        return [
-            "elm.appendChild(docElm.createProcessingInstruction('" + tagName + "','" + node.nodeValue + "'))",
-        ];
+        return ["elm.appendChild(docElm.createProcessingInstruction('" + tagName + "','" + node.nodeValue + "'))"];
     };
     NodeParser.prototype._getAppendLivableString = function (nodeString, nodeValue, type) {
-        var addToSetString = nodeValue.indexOf('#') === 0
-            ? "self.set['" + nodeValue.substring(1) + "'] = { node, type: '" + type + "' };"
-            : '';
+        var addToSetString = nodeValue.indexOf('#') === 0 ? "self.set['" + nodeValue.substring(1) + "'] = { node, type: '" + type + "' };" : '';
         return "elm.appendChild((function () { const node = " + nodeString + "; " + addToSetString + " return node; })());";
     };
     NodeParser.prototype.parseDocumentType = function (node) {
-        return "self.setDocumentType('" + node.name + "','" + (node.publicId ? node.publicId : '') + "','" + (node.systemId ? node.systemId : '') + "')";
+        return "self._setDocumentType('" + node.name + "','" + (node.publicId ? node.publicId : '') + "','" + (node.systemId ? node.systemId : '') + "')";
     };
     NodeParser.prototype.parseTextElement = function (node) {
         return "docElm.createTextNode(`" + node.textContent + "`)";
@@ -150,9 +178,7 @@ var NodeParser = /** @class */ (function () {
         return "docElm.createComment(`" + node.textContent + "`)";
     };
     NodeParser.prototype.parseHtmlElement = function (node) {
-        var element = [
-            "const elm = docElm.createElement('" + node.tagName + "');",
-        ];
+        var element = ["const elm = docElm.createElement('" + node.tagName + "');"];
         this.parseAttributes(node, element);
         element.push.apply(element, this.parseChildren(node));
         return this.wrapAndReturnELM(element);
@@ -227,9 +253,7 @@ var NodeParser = /** @class */ (function () {
     };
     NodeParser.prototype._getAttributeInstructions = function (attributes) {
         var _this = this;
-        var instructions = [
-            '{ let node = self._getPreceedingOrSelf(elm), tmpAttrs;',
-        ];
+        var instructions = ['{ let node = self._getPreceedingOrSelf(elm), tmpAttrs;'];
         var liveId;
         if (attributes[attributes.length - 1].indexOf('#') === 0) {
             liveId = attributes.pop().substring(1);
@@ -287,27 +311,3 @@ var NodeParser = /** @class */ (function () {
     };
     return NodeParser;
 }());
-// function parseFromString(html: string): Document {
-// 	const res = domParser.parseFromString(html, 'text/xml');
-// 	if (!res) {
-// 		return domParser.parseFromString(`<pre>${html.replace(/\</g, '&lt;')}</pre>`, 'text/xml');
-// 	}
-// 	console.log(Object.keys(res));
-// 	return res;
-// }
-function transpile(parser, isTypescript) {
-    return fs_1.readFileSync(getTemplateFile(isTypescript), {
-        encoding: 'utf-8',
-    }).replace(/console\.log\(docElm\)[;,]/, "this.node = " + parser.toString() + ";");
-}
-function getTemplateFile(isTypescript) {
-    return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
-}
-function htmlEncoder(html, isTypescript) {
-    if (isTypescript === void 0) { isTypescript = false; }
-    var document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
-    // console.debug(html.replace(/\n\s+>/g,'>'));
-    var nodeParser = new NodeParser(document);
-    return transpile(nodeParser, isTypescript);
-}
-exports.default = htmlEncoder;
