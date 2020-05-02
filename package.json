@@ -69,5 +69,5 @@
 		"test": "mocha tests/*.test.js",
 		"start": "node ./dist/cli.js"
 	},
-	"version": "0.5.3"
+	"version": "0.5.4"
 }
