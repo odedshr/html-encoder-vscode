@@ -148,6 +148,8 @@ p. _<?css condition?value?>_ will add the css-class or array-of-classes provided
 
 ## Easy-access to Content
 
+### Using id (`<img id="foo" />`)
+
 HTML elements with an `id` attribute can easily be acceses at `node.set[id]`, for example:
 
 template.html:
@@ -164,6 +166,10 @@ node.set.cta.addEventListener('click', ... );
 
 ```
 
+You can even replace the node entirely (`node.set.cta = new Node()`) and the reference will move to the new node.
+
+### using `#id` suffix for `<?=text #foo>`, `<?=text #foo>` and `<?=text #foo>`
+
 text nodes and html nodes that were added using `<?=text ?>` and `<?==html ?>` can also have quick-access, by adding a `#id` suffix. For example:
 
 template.html:
@@ -177,16 +183,37 @@ template.html:
 
 javascript:
 
-```javsascript
+```javascript
 const node = new Node({ firstName: 'Adam' });
 console.log(node.toString()); // output `<div>Hello Adam</div>`
-node.live.name = 'Ben';
+node.set.name = 'Ben';
 console.log(node.toString()); // output `<div>Hello Ben</div>`
-
 ```
 
 1. `<?=text #id?>` => create a textnode and update its value
 2. `<?==html #id?>` => create a node and update its value with either text or node
+
+when setting `#id` to an html, it's the same effect as defining an `id` attribute to the element (as previously described) and similarly it allows replacing the entire node.
+
+### setting reference to attributes
+
+Similarly you can create a reference to a specific attribute:
+
+1. `<?attr href#=url?>` creates a reference at `node.set.href` and set initial value from `url`
+2. `<?attr href#link=url?>` creates a refernce at `node.set.link` with the initial value
+3. `<?attr value#{variable}=key?>` creates a reference where the alias named is also a variable. for example, the data `{variable:'link', key:'localhost' }` the following statement will be true `node.set.link === 'localhost`
+4. `<?attr attributeMap#?>` create an easy attribute-map setter `node.set.attributeMap = { attr1:'foo', attr2: 'bar' }`
+
+It's important to note that the reference aren't variables, rather then reference so changes in the values will be refelected automatically:
+
+```html
+<div><input type="text" id="field" value="initial" /><?attr value#name=value?></div>
+```
+
+```javascript
+node.set.field.value = 'hello'; //node.set.field refers to the input HTML element
+console.log(node.set.name); // outputs 'hello
+```
 
 ## Sub-Templates
 

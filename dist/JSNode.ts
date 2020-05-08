@@ -3,6 +3,7 @@ declare type window = {
 };
 
 declare type KeydObject = { [key: string]: any };
+declare type Property = { type: 'text' | 'html' | 'attribute'; attrName: string; node: HTMLElement };
 
 interface DOMParser {
 	parseFromString(str: string, type: SupportedType): Document;
@@ -14,14 +15,13 @@ declare var DOMParser: {
 };
 
 export default class JSNode {
-	set: { [key: string]: any };
+	set: { [key: string]: Property } = {};
 	data: { [key: string]: any };
 	node: ChildNode;
 	domParser: DOMParser;
 	docElm: Document;
 
 	constructor(data: object, domParserInstance?: DOMParser) {
-		this.set = {};
 		this.domParser = this.getDOMParser(domParserInstance);
 
 		this.docElm = this.getDocElm();
@@ -90,7 +90,7 @@ export default class JSNode {
 		}
 	}
 
-	_getSetProxy(map: KeydObject) {
+	_getSetProxy(map: { [key: string]: Property }) {
 		const domParser = this.domParser;
 		return new Proxy(map, {
 			get: function (map, prop: string) {
@@ -98,11 +98,11 @@ export default class JSNode {
 				if (property) {
 					switch (property.type) {
 						case 'text':
-							return property.node.data;
+							return property.node.textContent;
 						case 'html':
 							return property.node;
 						case 'attribute':
-							return property.node;
+							return property.node.getAttribute(prop);
 					}
 				}
 			},
@@ -117,16 +117,24 @@ export default class JSNode {
 						case 'html':
 							try {
 								const newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
-								return property.node.parentNode.replaceChild(newNode, property.node);
+								const result = property.node.parentNode.replaceChild(newNode, property.node);
+								property.node = newNode;
+								return result;
 							} catch (err) {
 								console.error(`failed to replace node to ${value}`, err);
 							}
 						case 'attribute':
-							if (value === null) {
-								return property.node.removeAttribute(prop);
-							}
+							if (property.attrName) {
+								// single attribute
+								if (value === null) {
+									return property.node.removeAttribute(property.attrName);
+								}
 
-							return property.node.setAttribute(prop, value);
+								return property.node.setAttribute(property.attrName, value);
+							} else {
+								// attribute map
+								Object.keys(value).forEach((attrName) => property.node.setAttribute(attrName, value[attrName]));
+							}
 					}
 				}
 				return true;

@@ -72,11 +72,11 @@ var JSNode = /** @class */ (function () {
                 if (property) {
                     switch (property.type) {
                         case 'text':
-                            return property.node.data;
+                            return property.node.textContent;
                         case 'html':
                             return property.node;
                         case 'attribute':
-                            return property.node;
+                            return property.node.getAttribute(prop);
                     }
                 }
             },
@@ -90,16 +90,25 @@ var JSNode = /** @class */ (function () {
                         case 'html':
                             try {
                                 var newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
-                                return property.node.parentNode.replaceChild(newNode, property.node);
+                                var result = property.node.parentNode.replaceChild(newNode, property.node);
+                                property.node = newNode;
+                                return result;
                             }
                             catch (err) {
                                 console.error("failed to replace node to " + value, err);
                             }
                         case 'attribute':
-                            if (value === null) {
-                                return property.node.removeAttribute(prop);
+                            if (property.attrName) {
+                                // single attribute
+                                if (value === null) {
+                                    return property.node.removeAttribute(property.attrName);
+                                }
+                                return property.node.setAttribute(property.attrName, value);
                             }
-                            return property.node.setAttribute(prop, value);
+                            else {
+                                // attribute map
+                                Object.keys(value).forEach(function (attrName) { return property.node.setAttribute(attrName, value[attrName]); });
+                            }
                     }
                 }
                 return true;

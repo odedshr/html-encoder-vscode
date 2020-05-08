@@ -1,6 +1,11 @@
 declare type KeydObject = {
     [key: string]: any;
 };
+declare type Property = {
+    type: 'text' | 'html' | 'attribute';
+    attrName: string;
+    node: HTMLElement;
+};
 interface DOMParser {
     parseFromString(str: string, type: SupportedType): Document;
 }
@@ -10,7 +15,7 @@ declare var DOMParser: {
 };
 export default class JSNode {
     set: {
-        [key: string]: any;
+        [key: string]: Property;
     };
     data: {
         [key: string]: any;
@@ -23,7 +28,11 @@ export default class JSNode {
     private getDOMParser;
     protected _setDocumentType(name: string, publicId: string, systemId: string): void;
     protected _defineSet(): void;
-    _getSetProxy(map: KeydObject): KeydObject;
+    _getSetProxy(map: {
+        [key: string]: Property;
+    }): {
+        [key: string]: Property;
+    };
     _getSubTemplate(templateName: string): any;
     _forEach(iteratorName: string, indexName: string, varName: string, fn: Function): void;
     _getPreceedingOrSelf(elm: HTMLElement): HTMLElement;
