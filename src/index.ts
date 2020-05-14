@@ -18,12 +18,12 @@ function transpile(parser: NodeParser, isTypescript: boolean) {
 	let transpiledString = parser.toString();
 
 	if (transpiledString.indexOf('self.set') > -1) {
-		transpiledString += `;self._defineSet();`;
+		transpiledString += `;self._defineSet(isSSR);`;
 	}
 
 	return readFileSync(getTemplateFile(isTypescript), {
 		encoding: 'utf-8',
-	}).replace(/console\.log\(self, docElm\)[;,]/, `this.node = ${transpiledString};`);
+	}).replace(/console\.log\(self, docElm, isSSR\)[;,]/, `this.node = ${transpiledString};`);
 }
 
 function treeShake(code: string) {

@@ -18,6 +18,7 @@ const NodeType = {
 export default class NodeParser {
 	rootNode: Document;
 	output: string[] = [];
+	isSSR: false;
 
 	constructor(document: Document) {
 		this.rootNode = document;
@@ -103,14 +104,18 @@ export default class NodeParser {
 	}
 
 	private _addSimpleNode(funcName: string, tagName: string, nodeValue: string, type: 'html' | 'text'): string {
-		return this._getAppendLivableString(`${funcName}(self._getValue(self.data, '${tagName}'))`, nodeValue, type);
+		const nodeString = `${funcName}(self._getValue(self.data, '${tagName}'))`;
+		const updatableString = this._getAppendLivableString(nodeValue, type);
+
+		return `elm.appendChild((function () { const node = ${nodeString}; ${updatableString} return node; })());`;
 	}
 
-	private _getAppendLivableString(nodeString: string, nodeValue: string, type: string): string {
-		const addToSetString =
-			nodeValue.indexOf('#') === 0 ? `self.set['${nodeValue.substr(1)}'] = { node, type: '${type}' };` : '';
-
-		return `elm.appendChild((function () { const node = ${nodeString}; ${addToSetString} return node; })());`;
+	private _getAppendLivableString(nodeValue: string, type: string): string {
+		if (nodeValue.indexOf('#') === -1) {
+			return '';
+		} else {
+			return `self.set['${nodeValue.substr(1)}'] = { node, type: '${type}' };`;
+		}
 	}
 
 	private parseDocumentType(node: DocumentType): string {

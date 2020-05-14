@@ -3,8 +3,8 @@ declare type KeydObject = {
 };
 declare type Property = {
     type: 'text' | 'html' | 'attribute';
-    attrName: string;
-    node: HTMLElement;
+    attrName?: string;
+    node: Element;
 };
 interface DOMParser {
     parseFromString(str: string, type: SupportedType): Document;
@@ -23,16 +23,11 @@ export default class JSNode {
     node: ChildNode;
     domParser: DOMParser;
     docElm: Document;
-    constructor(data: object, domParserInstance?: DOMParser);
+    constructor(data: object, domParserInstance?: DOMParser, isSSR?: boolean);
     private getDocElm;
     private getDOMParser;
     protected _setDocumentType(name: string, publicId: string, systemId: string): void;
-    protected _defineSet(): void;
-    _getSetProxy(map: {
-        [key: string]: Property;
-    }): {
-        [key: string]: Property;
-    };
+    protected _defineSet(isSSR: boolean): void;
     _getSubTemplate(templateName: string): any;
     _forEach(iteratorName: string, indexName: string, varName: string, fn: Function): void;
     _getPreceedingOrSelf(elm: HTMLElement): HTMLElement;
@@ -40,4 +35,5 @@ export default class JSNode {
     _setValue(data: KeydObject, path: string, value: any): void;
     _getHTMLNode(htmlString: string | HTMLElement): HTMLElement | Text;
 }
+export declare function init(root: Element, domParser: DOMParser): void;
 export {};

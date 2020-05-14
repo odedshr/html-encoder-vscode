@@ -1,6 +1,7 @@
 export default class NodeParser {
     rootNode: Document;
     output: string[];
+    isSSR: false;
     constructor(document: Document);
     private parseDocument;
     private parseNode;

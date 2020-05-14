@@ -1,9 +1,5 @@
-declare type window = {
-	DOMParser: Function;
-};
-
 declare type KeydObject = { [key: string]: any };
-declare type Property = { type: 'text' | 'html' | 'attribute'; attrName: string; node: HTMLElement };
+declare type Property = { type: 'text' | 'html' | 'attribute'; attrName?: string; node: Element };
 
 interface DOMParser {
 	parseFromString(str: string, type: SupportedType): Document;
@@ -21,7 +17,7 @@ export default class JSNode {
 	domParser: DOMParser;
 	docElm: Document;
 
-	constructor(data: object, domParserInstance?: DOMParser) {
+	constructor(data: object, domParserInstance?: DOMParser, isSSR = false) {
 		this.domParser = this.getDOMParser(domParserInstance);
 
 		this.docElm = this.getDocElm();
@@ -34,7 +30,7 @@ export default class JSNode {
 		const docElm = this.docElm;
 		// main code goes here:
 		//@ts-ignore returned value might be DocumentFragment which isn't a childNode, which might cause tsc to complain
-		console.log(self, docElm);
+		console.log(self, docElm, isSSR);
 		// end of main code
 
 		const originalToString = this.node.toString;
@@ -80,67 +76,40 @@ export default class JSNode {
 	}
 	// feature _setDocumentType end
 	// feature _defineSet
-	protected _defineSet() {
+	protected _defineSet(isSSR: boolean) {
 		if (Object.keys(this.set).length) {
-			Object.defineProperty(this.node, 'set', {
-				value: this._getSetProxy(this.set),
-				configurable: true,
-				writable: true,
-			});
+			if (isSSR) {
+				for (let key in this.set) {
+					const property = this.set[key];
+					const node = <HTMLElement>property.node;
+					switch (property.type) {
+						case 'text':
+							(<HTMLElement>node.parentNode).setAttribute('data-live-text', key);
+							break;
+						case 'html':
+							if (!(node.getAttribute('id') === key)) {
+								node.setAttribute('data-live-html', key);
+							}
+							break;
+						case 'attribute':
+							if (property.attrName) {
+								const value = [`${property.attrName}:${key}`];
+								if (node.hasAttribute('data-live-attr')) {
+									value.unshift(node.getAttribute('data-live-attr'));
+								}
+								node.setAttribute(`data-live-attr`, value.join(';'));
+							} else {
+								node.setAttribute('data-live-map', key);
+							}
+							break;
+					}
+				}
+			} else {
+				addReactiveFunctionality(this.node, this.set, this.domParser);
+			}
 		}
 	}
 
-	_getSetProxy(map: { [key: string]: Property }) {
-		const domParser = this.domParser;
-		return new Proxy(map, {
-			get: function (map, prop: string) {
-				const property = map[prop];
-				if (property) {
-					switch (property.type) {
-						case 'text':
-							return property.node.textContent;
-						case 'html':
-							return property.node;
-						case 'attribute':
-							return property.node.getAttribute(prop);
-					}
-				}
-			},
-			set: function (map: KeydObject, prop: string, value: any) {
-				const property = map[prop];
-
-				if (property) {
-					switch (property.type) {
-						case 'text':
-							property.node.data = value;
-							break;
-						case 'html':
-							try {
-								const newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
-								const result = property.node.parentNode.replaceChild(newNode, property.node);
-								property.node = newNode;
-								return result;
-							} catch (err) {
-								console.error(`failed to replace node to ${value}`, err);
-							}
-						case 'attribute':
-							if (property.attrName) {
-								// single attribute
-								if (value === null) {
-									return property.node.removeAttribute(property.attrName);
-								}
-
-								return property.node.setAttribute(property.attrName, value);
-							} else {
-								// attribute map
-								Object.keys(value).forEach((attrName) => property.node.setAttribute(attrName, value[attrName]));
-							}
-					}
-				}
-				return true;
-			},
-		});
-	}
 	// feature _defineSet end
 	// feature _getSubTemplate
 	_getSubTemplate(templateName: string) {
@@ -223,6 +192,92 @@ export default class JSNode {
 	}
 	// feature _getHTMLNode end
 }
+
+// feature _defineSet
+function addReactiveFunctionality(node: ChildNode, set: { [key: string]: Property } = {}, domParser: DOMParser) {
+	Object.defineProperty(node, 'set', {
+		value: getSetProxy(set, domParser),
+		configurable: true,
+		writable: true,
+	});
+}
+
+function getSetProxy(map: { [key: string]: Property }, domParser: DOMParser) {
+	return new Proxy(map, {
+		get: function (map, prop: string) {
+			const property = map[prop];
+			if (property) {
+				switch (property.type) {
+					case 'text':
+						return property.node.textContent;
+					case 'html':
+						return property.node;
+					case 'attribute':
+						return property.node.getAttribute(prop);
+				}
+			}
+		},
+		set: function (map: KeydObject, prop: string, value: any) {
+			const property = map[prop];
+
+			if (property) {
+				switch (property.type) {
+					case 'text':
+						property.node.data = value;
+						break;
+					case 'html':
+						try {
+							const newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
+							const result = property.node.parentNode.replaceChild(newNode, property.node);
+							property.node = newNode;
+							return result;
+						} catch (err) {
+							console.error(`failed to replace node to ${value}`, err);
+						}
+					case 'attribute':
+						if (property.attrName) {
+							// single attribute
+							if (value === null) {
+								return property.node.removeAttribute(property.attrName);
+							}
+
+							return property.node.setAttribute(property.attrName, value);
+						} else {
+							// attribute map
+							Object.keys(value).forEach((attrName) => property.node.setAttribute(attrName, value[attrName]));
+						}
+				}
+			}
+			return true;
+		},
+	});
+}
+
+export function init(root: Element, domParser: DOMParser) {
+	const set: { [key: string]: Property } = {};
+	root
+		.querySelectorAll('[data-live-text]')
+		.forEach((node) => (set[node.getAttribute('data-live-text')] = { type: 'text', node: <Element>node.firstChild }));
+	root
+		.querySelectorAll('[data-live-html], [id]')
+		.forEach((node) => (set[node.getAttribute('data-live-text')] = { type: 'html', node }));
+	root
+		.querySelectorAll('[data-live-map]')
+		.forEach((node) => (set[node.getAttribute('data-live-map')] = { type: 'attribute', node }));
+	root.querySelectorAll('[data-live-attr]').forEach((node) =>
+		node
+			.getAttribute('data-live-attr')
+			.split(';')
+			.forEach((attr) => {
+				const [attrName, varName] = attr.split(':');
+				set[varName] = { type: 'attribute', node, attrName };
+			})
+	);
+
+	addReactiveFunctionality(root, set, domParser);
+}
+// feature _defineSet end
+
 function fixHTMLTags(xmlString: string) {
 	return xmlString.replace(
 		/\<(?!area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)([a-z|A-Z|_|\-|:|0-9]+)([^>]*)\/\>/,

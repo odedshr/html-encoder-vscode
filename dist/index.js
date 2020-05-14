@@ -16,11 +16,11 @@ function getTemplateFile(isTypescript) {
 function transpile(parser, isTypescript) {
     var transpiledString = parser.toString();
     if (transpiledString.indexOf('self.set') > -1) {
-        transpiledString += ";self._defineSet();";
+        transpiledString += ";self._defineSet(isSSR);";
     }
     return fs_1.readFileSync(getTemplateFile(isTypescript), {
         encoding: 'utf-8',
-    }).replace(/console\.log\(self, docElm\)[;,]/, "this.node = " + transpiledString + ";");
+    }).replace(/console\.log\(self, docElm, isSSR\)[;,]/, "this.node = " + transpiledString + ";");
 }
 function treeShake(code) {
     findFeatures(code).forEach(function (feature) {

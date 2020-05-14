@@ -215,6 +215,18 @@ node.set.field.value = 'hello'; //node.set.field refers to the input HTML elemen
 console.log(node.set.name); // outputs 'hello
 ```
 
+### Easy-access to content with Server-Side-Rendering
+
+`node.set` can provide easy access to the code but it's only available when the node was rendered in the browser.
+In ordr to support SSR, we can leave enough cues that can later be picked up to reconstruct a new `node.set`
+By compiling `new Node({...}, domParser, /*isSSR=*/ true)`, it will add additional attributes:
+
+1. `<?=text #varName?>` => `data-live-text="varName"` (added to the parent of the text node)
+2. `<?==html #varName?>` => `data-live-html="varName"` (added the replaceable node and also allow accessing the node's attributes). It's worthing noting that `id` attribute don't require any special tagging and are expected to be caught by the front-end independentaly.
+3. `<img><?attr attributeMap#? />` => `<img data-live-map="attributeMap" />`;
+4. `<img><?attr src#=url?></div>` => `<div data-live-attr="src:src"></div>`;
+5. `<img><?attr src#link=url alt#=text?></div>` => `<div data-live-attr="src:link;alt:alt"></div>`;
+
 ## Sub-Templates
 
 it is possible to use existing templates using the `<?:templateNamte?>` command. For example:

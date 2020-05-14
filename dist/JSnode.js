@@ -1,8 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var JSNode = /** @class */ (function () {
-    function JSNode(data, domParserInstance) {
+    function JSNode(data, domParserInstance, isSSR) {
         var _this = this;
+        if (isSSR === void 0) { isSSR = false; }
         this.set = {};
         this.domParser = this.getDOMParser(domParserInstance);
         this.docElm = this.getDocElm();
@@ -12,7 +13,7 @@ var JSNode = /** @class */ (function () {
         var docElm = this.docElm;
         // main code goes here:
         //@ts-ignore returned value might be DocumentFragment which isn't a childNode, which might cause tsc to complain
-        console.log(self, docElm);
+        console.log(self, docElm, isSSR);
         // end of main code
         var originalToString = this.node.toString;
         this.node.toString = function () { return fixHTMLTags(originalToString.call(_this.node)); };
@@ -55,65 +56,40 @@ var JSNode = /** @class */ (function () {
     };
     // feature _setDocumentType end
     // feature _defineSet
-    JSNode.prototype._defineSet = function () {
+    JSNode.prototype._defineSet = function (isSSR) {
         if (Object.keys(this.set).length) {
-            Object.defineProperty(this.node, 'set', {
-                value: this._getSetProxy(this.set),
-                configurable: true,
-                writable: true,
-            });
-        }
-    };
-    JSNode.prototype._getSetProxy = function (map) {
-        var domParser = this.domParser;
-        return new Proxy(map, {
-            get: function (map, prop) {
-                var property = map[prop];
-                if (property) {
+            if (isSSR) {
+                for (var key in this.set) {
+                    var property = this.set[key];
+                    var node = property.node;
                     switch (property.type) {
                         case 'text':
-                            return property.node.textContent;
-                        case 'html':
-                            return property.node;
-                        case 'attribute':
-                            return property.node.getAttribute(prop);
-                    }
-                }
-            },
-            set: function (map, prop, value) {
-                var property = map[prop];
-                if (property) {
-                    switch (property.type) {
-                        case 'text':
-                            property.node.data = value;
+                            node.parentNode.setAttribute('data-live-text', key);
                             break;
                         case 'html':
-                            try {
-                                var newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
-                                var result = property.node.parentNode.replaceChild(newNode, property.node);
-                                property.node = newNode;
-                                return result;
+                            if (!(node.getAttribute('id') === key)) {
+                                node.setAttribute('data-live-html', key);
                             }
-                            catch (err) {
-                                console.error("failed to replace node to " + value, err);
-                            }
+                            break;
                         case 'attribute':
                             if (property.attrName) {
-                                // single attribute
-                                if (value === null) {
-                                    return property.node.removeAttribute(property.attrName);
+                                var value = [property.attrName + ":" + key];
+                                if (node.hasAttribute('data-live-attr')) {
+                                    value.unshift(node.getAttribute('data-live-attr'));
                                 }
-                                return property.node.setAttribute(property.attrName, value);
+                                node.setAttribute("data-live-attr", value.join(';'));
                             }
                             else {
-                                // attribute map
-                                Object.keys(value).forEach(function (attrName) { return property.node.setAttribute(attrName, value[attrName]); });
+                                node.setAttribute('data-live-map', key);
                             }
+                            break;
                     }
                 }
-                return true;
-            },
-        });
+            }
+            else {
+                addReactiveFunctionality(this.node, this.set, this.domParser);
+            }
+        }
     };
     // feature _defineSet end
     // feature _getSubTemplate
@@ -195,6 +171,89 @@ var JSNode = /** @class */ (function () {
     return JSNode;
 }());
 exports.default = JSNode;
+// feature _defineSet
+function addReactiveFunctionality(node, set, domParser) {
+    if (set === void 0) { set = {}; }
+    Object.defineProperty(node, 'set', {
+        value: getSetProxy(set, domParser),
+        configurable: true,
+        writable: true,
+    });
+}
+function getSetProxy(map, domParser) {
+    return new Proxy(map, {
+        get: function (map, prop) {
+            var property = map[prop];
+            if (property) {
+                switch (property.type) {
+                    case 'text':
+                        return property.node.textContent;
+                    case 'html':
+                        return property.node;
+                    case 'attribute':
+                        return property.node.getAttribute(prop);
+                }
+            }
+        },
+        set: function (map, prop, value) {
+            var property = map[prop];
+            if (property) {
+                switch (property.type) {
+                    case 'text':
+                        property.node.data = value;
+                        break;
+                    case 'html':
+                        try {
+                            var newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
+                            var result = property.node.parentNode.replaceChild(newNode, property.node);
+                            property.node = newNode;
+                            return result;
+                        }
+                        catch (err) {
+                            console.error("failed to replace node to " + value, err);
+                        }
+                    case 'attribute':
+                        if (property.attrName) {
+                            // single attribute
+                            if (value === null) {
+                                return property.node.removeAttribute(property.attrName);
+                            }
+                            return property.node.setAttribute(property.attrName, value);
+                        }
+                        else {
+                            // attribute map
+                            Object.keys(value).forEach(function (attrName) { return property.node.setAttribute(attrName, value[attrName]); });
+                        }
+                }
+            }
+            return true;
+        },
+    });
+}
+function init(root, domParser) {
+    var set = {};
+    root
+        .querySelectorAll('[data-live-text]')
+        .forEach(function (node) { return (set[node.getAttribute('data-live-text')] = { type: 'text', node: node.firstChild }); });
+    root
+        .querySelectorAll('[data-live-html], [id]')
+        .forEach(function (node) { return (set[node.getAttribute('data-live-text')] = { type: 'html', node: node }); });
+    root
+        .querySelectorAll('[data-live-map]')
+        .forEach(function (node) { return (set[node.getAttribute('data-live-map')] = { type: 'attribute', node: node }); });
+    root.querySelectorAll('[data-live-attr]').forEach(function (node) {
+        return node
+            .getAttribute('data-live-attr')
+            .split(';')
+            .forEach(function (attr) {
+            var _a = attr.split(':'), attrName = _a[0], varName = _a[1];
+            set[varName] = { type: 'attribute', node: node, attrName: attrName };
+        });
+    });
+    addReactiveFunctionality(root, set, domParser);
+}
+exports.init = init;
+// feature _defineSet end
 function fixHTMLTags(xmlString) {
     return xmlString.replace(/\<(?!area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)([a-z|A-Z|_|\-|:|0-9]+)([^>]*)\/\>/, '<$1$2></$1>');
 }

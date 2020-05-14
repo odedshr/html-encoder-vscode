@@ -106,11 +106,17 @@ var NodeParser = /** @class */ (function () {
         return ["elm.appendChild(docElm.createProcessingInstruction('" + tagName + "','" + node.nodeValue + "'))"];
     };
     NodeParser.prototype._addSimpleNode = function (funcName, tagName, nodeValue, type) {
-        return this._getAppendLivableString(funcName + "(self._getValue(self.data, '" + tagName + "'))", nodeValue, type);
+        var nodeString = funcName + "(self._getValue(self.data, '" + tagName + "'))";
+        var updatableString = this._getAppendLivableString(nodeValue, type);
+        return "elm.appendChild((function () { const node = " + nodeString + "; " + updatableString + " return node; })());";
     };
-    NodeParser.prototype._getAppendLivableString = function (nodeString, nodeValue, type) {
-        var addToSetString = nodeValue.indexOf('#') === 0 ? "self.set['" + nodeValue.substr(1) + "'] = { node, type: '" + type + "' };" : '';
-        return "elm.appendChild((function () { const node = " + nodeString + "; " + addToSetString + " return node; })());";
+    NodeParser.prototype._getAppendLivableString = function (nodeValue, type) {
+        if (nodeValue.indexOf('#') === -1) {
+            return '';
+        }
+        else {
+            return "self.set['" + nodeValue.substr(1) + "'] = { node, type: '" + type + "' };";
+        }
     };
     NodeParser.prototype.parseDocumentType = function (node) {
         return "self._setDocumentType('" + node.name + "','" + (node.publicId ? node.publicId : '') + "','" + (node.systemId ? node.systemId : '') + "')";
