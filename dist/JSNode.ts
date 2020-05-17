@@ -79,31 +79,10 @@ export default class JSNode {
 	protected _defineSet(isSSR: boolean) {
 		if (Object.keys(this.set).length) {
 			if (isSSR) {
-				for (let key in this.set) {
-					const property = this.set[key];
-					const node = <HTMLElement>property.node;
-					switch (property.type) {
-						case 'text':
-							(<HTMLElement>node.parentNode).setAttribute('data-live-text', key);
-							break;
-						case 'html':
-							if (!(node.getAttribute('id') === key)) {
-								node.setAttribute('data-live-html', key);
-							}
-							break;
-						case 'attribute':
-							if (property.attrName) {
-								const value = [`${property.attrName}:${key}`];
-								if (node.hasAttribute('data-live-attr')) {
-									value.unshift(node.getAttribute('data-live-attr'));
-								}
-								node.setAttribute(`data-live-attr`, value.join(';'));
-							} else {
-								node.setAttribute('data-live-map', key);
-							}
-							break;
-					}
-				}
+				// if (this.node.hasOwnProperty('setAttribute')) {
+				(<HTMLElement>this.node).setAttribute('data-live-root', '');
+				// }
+				addServerReactiveFunctionality(this.set);
 			} else {
 				addReactiveFunctionality(this.node, this.set, this.domParser);
 			}
@@ -194,6 +173,40 @@ export default class JSNode {
 }
 
 // feature _defineSet
+function addServerReactiveFunctionality(set: { [key: string]: Property } = {}) {
+	for (let key in set) {
+		const property = set[key];
+		const node = <HTMLElement>property.node;
+		switch (property.type) {
+			case 'text':
+				const parentNode: HTMLElement = <HTMLElement>node.parentNode;
+				appendAttribute(parentNode, 'data-live-text', `${Array.from(parentNode.childNodes).indexOf(node)}:${key}`);
+				break;
+			case 'html':
+				if (!node.getAttribute || !(node.getAttribute('id') === key)) {
+					const parentNode: HTMLElement = <HTMLElement>node.parentNode;
+					appendAttribute(parentNode, 'data-live-html', `${Array.from(parentNode.childNodes).indexOf(node)}:${key}`);
+				}
+				break;
+			case 'attribute':
+				if (property.attrName) {
+					appendAttribute(node, 'data-live-attr', `${property.attrName}:${key}`);
+				} else {
+					node.setAttribute('data-live-map', key);
+				}
+				break;
+		}
+	}
+}
+
+function appendAttribute(node: HTMLElement, attributeName: string, newChild: string) {
+	const value = [newChild];
+	if (node.hasAttribute(attributeName)) {
+		value.unshift(node.getAttribute(attributeName));
+	}
+	node.setAttribute(attributeName, value.join(';'));
+}
+
 function addReactiveFunctionality(node: ChildNode, set: { [key: string]: Property } = {}, domParser: DOMParser) {
 	Object.defineProperty(node, 'set', {
 		value: getSetProxy(set, domParser),
@@ -255,27 +268,58 @@ function getSetProxy(map: { [key: string]: Property }, domParser: DOMParser) {
 
 export function init(root: Element, domParser: DOMParser) {
 	const set: { [key: string]: Property } = {};
-	root
-		.querySelectorAll('[data-live-text]')
-		.forEach((node) => (set[node.getAttribute('data-live-text')] = { type: 'text', node: <Element>node.firstChild }));
-	root
-		.querySelectorAll('[data-live-html], [id]')
-		.forEach((node) => (set[node.getAttribute('data-live-text')] = { type: 'html', node }));
-	root
-		.querySelectorAll('[data-live-map]')
-		.forEach((node) => (set[node.getAttribute('data-live-map')] = { type: 'attribute', node }));
-	root.querySelectorAll('[data-live-attr]').forEach((node) =>
+	initChild(set, root, domParser);
+	addReactiveFunctionality(root, set, domParser);
+}
+
+function initChild(set: { [key: string]: Property }, node: Element, domParser: DOMParser) {
+	if (node.hasAttribute('id')) {
+		set[node.getAttribute('id')] = { type: 'html', node };
+	}
+
+	if (node.hasAttribute('data-live-text')) {
+		node
+			.getAttribute('data-live-text')
+			.split(';')
+			.forEach((attr) => {
+				const [childIndex, varName] = attr.split(':');
+				set[varName] = { type: 'text', node: <Element>node.childNodes[+childIndex] };
+			});
+	}
+
+	if (node.hasAttribute('data-live-html')) {
+		node
+			.getAttribute('data-live-html')
+			.split(';')
+			.forEach((attr) => {
+				const [childIndex, varName] = attr.split(':');
+				set[varName] = { type: 'html', node: <Element>node.childNodes[+childIndex] };
+			});
+	}
+
+	if (node.hasAttribute('data-live-map')) {
+		set[node.getAttribute('data-live-map')] = { type: 'attribute', node };
+	}
+
+	if (node.hasAttribute('data-live-attr')) {
 		node
 			.getAttribute('data-live-attr')
 			.split(';')
 			.forEach((attr) => {
 				const [attrName, varName] = attr.split(':');
 				set[varName] = { type: 'attribute', node, attrName };
-			})
-	);
+			});
+	}
 
-	addReactiveFunctionality(root, set, domParser);
+	const children = node.childNodes;
+	for (let i = 0; i < children.length; i++) {
+		const child: Element = <Element>children.item(i);
+		if (child.hasAttribute && !child.hasAttribute('data-live-root')) {
+			initChild(set, child, domParser);
+		}
+	}
 }
+
 // feature _defineSet end
 
 function fixHTMLTags(xmlString: string) {

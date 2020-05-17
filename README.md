@@ -146,6 +146,40 @@ o. _<?css value?>_ will add the css-class or array-of-classes provided in `value
 
 p. _<?css condition?value?>_ will add the css-class or array-of-classes provided in `value` if the variable `condition` is truthy.
 
+## Sub-Templates
+
+it is possible to use existing templates using the `<?:templateNamte?>` command. For example:
+
+liTemplate:
+
+```html
+<li><?=v?></li>
+```
+
+ulTemplate:
+
+```html
+<ul>
+	<?v@items?><?:liTemplate?><?/@?>
+</ul>
+```
+
+Javascript:
+
+```javsascript
+console.log(new UlTemplate({ items: ['a','b','c'], liTemplate }).toString()) // output:
+```
+
+Ouput:
+
+```html
+<ul>
+	<li>a</li>
+	<li>b</li>
+	<li>c</li>
+</ul>
+```
+
 ## Easy-access to Content
 
 ### Using id (`<img id="foo" />`)
@@ -221,44 +255,26 @@ console.log(node.set.name); // outputs 'hello
 In ordr to support SSR, we can leave enough cues that can later be picked up to reconstruct a new `node.set`
 By compiling `new Node({...}, domParser, /*isSSR=*/ true)`, it will add additional attributes:
 
-1. `<?=text #varName?>` => `data-live-text="varName"` (added to the parent of the text node)
-2. `<?==html #varName?>` => `data-live-html="varName"` (added the replaceable node and also allow accessing the node's attributes). It's worthing noting that `id` attribute don't require any special tagging and are expected to be caught by the front-end independentaly.
-3. `<img><?attr attributeMap#? />` => `<img data-live-map="attributeMap" />`;
-4. `<img><?attr src#=url?></div>` => `<div data-live-attr="src:src"></div>`;
-5. `<img><?attr src#link=url alt#=text?></div>` => `<div data-live-attr="src:link;alt:alt"></div>`;
+1. Every template's root receives the attribute `data-live-root` to indicate it's a seperate componenet (This is revelevant when having sub-templates).
+2. `<li><?=text #varName?></li>` => `<li data-live-text="0:varName"></li>` (added to the parent of the text node), note the 0 indicates the child's index.
+3. `<ul><?==html #foo?><?==html #bar?></ul>` => `<ul data-live-html="0:foo;1:bar"><li></li><li></li></ul>` (added to the parent of the text node), Note the 1 indicates the child's index.
+4. `<img><?attr attributeMap#? />` => `<img data-live-map="attributeMap" />`;
+5. `<img><?attr src#=url?></div>` => `<div data-live-attr="src:src"></div>`;
+6. `<img><?attr src#link=url alt#=text?></div>` => `<div data-live-attr="src:link;alt:alt"></div>`;
+7. `id` attribute (e.g. `<img id="avatar" />`) don't have translated reference but it is picked up by the init regardless.
 
-## Sub-Templates
+To reconnect all the references at the client side, import an `init(node, domParser)` using either:
 
-it is possible to use existing templates using the `<?:templateNamte?>` command. For example:
+```javascript
+   import { init }, JSNode from './MyComponent.template';
+   //or
+   const { init, default: JSNode } = require('./MyComponent.template');
 
-liTemplate:
+   // the `init` function is the same for all template so it's enough to run it once on all `data-live-root`
+   init(document.querySelectorAll('[data-live-root]'), new DOMParser());
+   const myForm = document.getElementById('feedbackForm');
+   consoel.log(myForm.set.starCount); // should have the reference to the value;
 
-```html
-<li><?=v?></li>
-```
-
-ulTemplate:
-
-```html
-<ul>
-	<?v@items?><?:liTemplate?><?/@?>
-</ul>
-```
-
-Javascript:
-
-```javsascript
-console.log(new UlTemplate({ items: ['a','b','c'], liTemplate }).toString()) // output:
-```
-
-Ouput:
-
-```html
-<ul>
-	<li>a</li>
-	<li>b</li>
-	<li>c</li>
-</ul>
 ```
 
 ## The idea behind the project The HTML

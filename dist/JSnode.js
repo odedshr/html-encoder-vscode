@@ -59,32 +59,10 @@ var JSNode = /** @class */ (function () {
     JSNode.prototype._defineSet = function (isSSR) {
         if (Object.keys(this.set).length) {
             if (isSSR) {
-                for (var key in this.set) {
-                    var property = this.set[key];
-                    var node = property.node;
-                    switch (property.type) {
-                        case 'text':
-                            node.parentNode.setAttribute('data-live-text', key);
-                            break;
-                        case 'html':
-                            if (!(node.getAttribute('id') === key)) {
-                                node.setAttribute('data-live-html', key);
-                            }
-                            break;
-                        case 'attribute':
-                            if (property.attrName) {
-                                var value = [property.attrName + ":" + key];
-                                if (node.hasAttribute('data-live-attr')) {
-                                    value.unshift(node.getAttribute('data-live-attr'));
-                                }
-                                node.setAttribute("data-live-attr", value.join(';'));
-                            }
-                            else {
-                                node.setAttribute('data-live-map', key);
-                            }
-                            break;
-                    }
-                }
+                // if (this.node.hasOwnProperty('setAttribute')) {
+                this.node.setAttribute('data-live-root', '');
+                // }
+                addServerReactiveFunctionality(this.set);
             }
             else {
                 addReactiveFunctionality(this.node, this.set, this.domParser);
@@ -172,6 +150,40 @@ var JSNode = /** @class */ (function () {
 }());
 exports.default = JSNode;
 // feature _defineSet
+function addServerReactiveFunctionality(set) {
+    if (set === void 0) { set = {}; }
+    for (var key in set) {
+        var property = set[key];
+        var node = property.node;
+        switch (property.type) {
+            case 'text':
+                var parentNode = node.parentNode;
+                appendAttribute(parentNode, 'data-live-text', Array.from(parentNode.childNodes).indexOf(node) + ":" + key);
+                break;
+            case 'html':
+                if (!node.getAttribute || !(node.getAttribute('id') === key)) {
+                    var parentNode_1 = node.parentNode;
+                    appendAttribute(parentNode_1, 'data-live-html', Array.from(parentNode_1.childNodes).indexOf(node) + ":" + key);
+                }
+                break;
+            case 'attribute':
+                if (property.attrName) {
+                    appendAttribute(node, 'data-live-attr', property.attrName + ":" + key);
+                }
+                else {
+                    node.setAttribute('data-live-map', key);
+                }
+                break;
+        }
+    }
+}
+function appendAttribute(node, attributeName, newChild) {
+    var value = [newChild];
+    if (node.hasAttribute(attributeName)) {
+        value.unshift(node.getAttribute(attributeName));
+    }
+    node.setAttribute(attributeName, value.join(';'));
+}
 function addReactiveFunctionality(node, set, domParser) {
     if (set === void 0) { set = {}; }
     Object.defineProperty(node, 'set', {
@@ -232,27 +244,52 @@ function getSetProxy(map, domParser) {
 }
 function init(root, domParser) {
     var set = {};
-    root
-        .querySelectorAll('[data-live-text]')
-        .forEach(function (node) { return (set[node.getAttribute('data-live-text')] = { type: 'text', node: node.firstChild }); });
-    root
-        .querySelectorAll('[data-live-html], [id]')
-        .forEach(function (node) { return (set[node.getAttribute('data-live-text')] = { type: 'html', node: node }); });
-    root
-        .querySelectorAll('[data-live-map]')
-        .forEach(function (node) { return (set[node.getAttribute('data-live-map')] = { type: 'attribute', node: node }); });
-    root.querySelectorAll('[data-live-attr]').forEach(function (node) {
-        return node
+    initChild(set, root, domParser);
+    addReactiveFunctionality(root, set, domParser);
+}
+exports.init = init;
+function initChild(set, node, domParser) {
+    if (node.hasAttribute('id')) {
+        set[node.getAttribute('id')] = { type: 'html', node: node };
+    }
+    if (node.hasAttribute('data-live-text')) {
+        node
+            .getAttribute('data-live-text')
+            .split(';')
+            .forEach(function (attr) {
+            var _a = attr.split(':'), childIndex = _a[0], varName = _a[1];
+            set[varName] = { type: 'text', node: node.childNodes[+childIndex] };
+        });
+    }
+    if (node.hasAttribute('data-live-html')) {
+        node
+            .getAttribute('data-live-html')
+            .split(';')
+            .forEach(function (attr) {
+            var _a = attr.split(':'), childIndex = _a[0], varName = _a[1];
+            set[varName] = { type: 'html', node: node.childNodes[+childIndex] };
+        });
+    }
+    if (node.hasAttribute('data-live-map')) {
+        set[node.getAttribute('data-live-map')] = { type: 'attribute', node: node };
+    }
+    if (node.hasAttribute('data-live-attr')) {
+        node
             .getAttribute('data-live-attr')
             .split(';')
             .forEach(function (attr) {
             var _a = attr.split(':'), attrName = _a[0], varName = _a[1];
             set[varName] = { type: 'attribute', node: node, attrName: attrName };
         });
-    });
-    addReactiveFunctionality(root, set, domParser);
+    }
+    var children = node.childNodes;
+    for (var i = 0; i < children.length; i++) {
+        var child = children.item(i);
+        if (child.hasAttribute && !child.hasAttribute('data-live-root')) {
+            initChild(set, child, domParser);
+        }
+    }
 }
-exports.init = init;
 // feature _defineSet end
 function fixHTMLTags(xmlString) {
     return xmlString.replace(/\<(?!area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)([a-z|A-Z|_|\-|:|0-9]+)([^>]*)\/\>/, '<$1$2></$1>');
