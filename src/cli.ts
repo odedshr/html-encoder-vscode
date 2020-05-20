@@ -3,10 +3,10 @@ import { existsSync, readFileSync, writeFileSync, lstatSync, mkdirSync, readdirS
 import { watch } from 'chokidar';
 import htmlEncoder from './index.js';
 
-type TargetDef = { path: string; ts?: boolean; ssr?: boolean };
+type TargetDef = { path?: string; ts?: boolean; ssr?: boolean };
 type Entry = {
 	source: string | string[];
-	target: string | string[] | TargetDef[];
+	target?: string | string[] | TargetDef[];
 };
 
 const packageJSON = JSON.parse(readFileSync(`${process.cwd()}/package.json`, 'utf-8'));
@@ -16,25 +16,29 @@ const ts = args.indexOf('ts') > -1;
 const ssr = args.indexOf('ssr') > -1;
 
 entries.map((entry: Entry) => {
-	const targets = prepareTargets(entry.target, ts, ssr);
+	const targets = standarizeTargets(entry.target || [{ ts, ssr }], ts, ssr);
 
 	return toArray(entry.source).map((source: string) => {
 		return watch(source)
-			.on('add', (path) => copy(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }]))
-			.on('change', (path) => copy(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }]))
-			.on('unlink', (path) => remove(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }]))
-			.on(
-				'addDir',
-				(path) => source !== path && copy(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }])
-			)
-			.on('unlinkDir', (path) => remove(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }]));
+			.on('add', (path) => copy(source, path, getTargets(targets, path)))
+			.on('change', (path) => copy(source, path, getTargets(targets, path)))
+			.on('unlink', (path) => remove(source, path, getTargets(targets, path)))
+			.on('addDir', (path) => source !== path && copy(source, path, getTargets(targets, path)))
+			.on('unlinkDir', (path) => remove(source, path, getTargets(targets, path)));
 	});
 });
 
-function prepareTargets(targets: string | string[] | TargetDef[], ts: boolean, ssr: boolean): TargetDef[] {
+function standarizeTargets(targets: string | string[] | TargetDef[], ts: boolean, ssr: boolean): TargetDef[] {
 	return toArray(targets).map((target: string | TargetDef) => {
 		return typeof target === 'string' ? { path: target, ts, ssr } : { ts, ssr, ...target };
 	});
+}
+
+function getTargets(targets: TargetDef[], path: string) {
+	return targets.map((target) => ({
+		path: replaceFileExtension(path, target.ts),
+		...target,
+	}));
 }
 
 function toArray(element: any) {
