@@ -3,38 +3,39 @@ import { existsSync, readFileSync, writeFileSync, lstatSync, mkdirSync, readdirS
 import { watch } from 'chokidar';
 import htmlEncoder from './index.js';
 
+type TargetDef = { path: string; ts?: boolean; ssr?: boolean };
 type Entry = {
-	source: string;
-	target: string;
+	source: string | string[];
+	target: string | string[] | TargetDef[];
 };
 
 const packageJSON = JSON.parse(readFileSync(`${process.cwd()}/package.json`, 'utf-8'));
 const entries = packageJSON['html-encode'] || [];
 const args = process.argv;
-const toTypescript = args.indexOf('ts') > -1;
-const toSSR = args.indexOf('ssr') > -1;
+const ts = args.indexOf('ts') > -1;
+const ssr = args.indexOf('ssr') > -1;
 
 entries.map((entry: Entry) => {
-	const targets = entry.target ? toArray(entry.target) : false;
+	const targets = prepareTargets(entry.target, ts, ssr);
 
-	return toArray(entry.source).map((source) => {
+	return toArray(entry.source).map((source: string) => {
 		return watch(source)
-			.on('add', (path) =>
-				copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR)
-			)
-			.on('change', (path) =>
-				copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR)
-			)
-			.on('unlink', (path) => remove(source, path, targets || [replaceFileExtension(path, toTypescript)]))
+			.on('add', (path) => copy(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }]))
+			.on('change', (path) => copy(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }]))
+			.on('unlink', (path) => remove(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }]))
 			.on(
 				'addDir',
-				(path) =>
-					source !== path &&
-					copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR)
+				(path) => source !== path && copy(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }])
 			)
-			.on('unlinkDir', (path) => remove(source, path, targets || [replaceFileExtension(path, toTypescript)]));
+			.on('unlinkDir', (path) => remove(source, path, targets || [{ path: replaceFileExtension(path, ts), ts, ssr }]));
 	});
 });
+
+function prepareTargets(targets: string | string[] | TargetDef[], ts: boolean, ssr: boolean): TargetDef[] {
+	return toArray(targets).map((target: string | TargetDef) => {
+		return typeof target === 'string' ? { path: target, ts, ssr } : { ts, ssr, ...target };
+	});
+}
 
 function toArray(element: any) {
 	return Array.isArray(element) ? element : [element];
@@ -44,19 +45,19 @@ function getTargetPath(source: string, file: string, target: string) {
 	return file.replace(source, target);
 }
 
-function remove(source: string, file: string, targets: string[]) {
-	targets.forEach((target) => removeFileSync(getTargetPath(source, replaceFileExtension(file, toTypescript), target)));
+function remove(source: string, file: string, targets: TargetDef[]) {
+	targets.forEach((target) =>
+		removeFileSync(getTargetPath(source, replaceFileExtension(file, target.ts), target.path))
+	);
 }
 
-function copy(source: string, file: string, targets: string[], toTypescript: boolean, toSSR: boolean) {
+function copy(source: string, file: string, targets: TargetDef[]) {
 	targets.forEach((target) =>
 		console.log(
-			copyFolderRecursiveSync(
-				file,
-				getTargetPath(source, replaceFileExtension(file, toTypescript), target),
-				toTypescript,
-				toSSR
-			)
+			copyFolderRecursiveSync(file, {
+				...target,
+				path: getTargetPath(source, replaceFileExtension(file, target.ts), target.path),
+			})
 		)
 	);
 }
@@ -65,17 +66,17 @@ function replaceFileExtension(filename: string, toTypescript: boolean) {
 	return filename.replace(/.[^.]{1,10}$/, `.${toTypescript ? 'ts' : 'js'}`);
 }
 
-function copyFileSync(source: string, target: string, toTypescript: boolean, toSSR: boolean) {
-	let targetFile = target;
+function copyFileSync(source: string, target: TargetDef) {
+	let targetFile = target.path;
 
 	//if target is a directory a new file with the same name will be created
-	if (existsSync(target)) {
-		if (lstatSync(target).isDirectory()) {
-			targetFile = replaceFileExtension(join(target, basename(source)), toTypescript);
+	if (existsSync(targetFile)) {
+		if (lstatSync(targetFile).isDirectory()) {
+			targetFile = replaceFileExtension(join(targetFile, basename(source)), target.ts);
 		}
 	} else {
-		target
-			.substring(0, target.lastIndexOf('/'))
+		targetFile
+			.substring(0, target.path.lastIndexOf('/'))
 			.split('/')
 			.reduce((memo, folder) => {
 				memo += folder;
@@ -83,7 +84,7 @@ function copyFileSync(source: string, target: string, toTypescript: boolean, toS
 				return `${memo}/`;
 			}, '');
 	}
-	writeFileSync(targetFile, htmlEncoder(readFileSync(source, { encoding: 'utf-8' }), toTypescript, toSSR));
+	writeFileSync(targetFile, htmlEncoder(readFileSync(source, { encoding: 'utf-8' }), target.ts, target.ssr));
 }
 
 function verifyFolderExists(folder: string) {
@@ -92,21 +93,21 @@ function verifyFolderExists(folder: string) {
 	}
 }
 
-function copyFolderRecursiveSync(source: string, target: string, toTypescript: boolean, toSSR: boolean) {
+function copyFolderRecursiveSync(source: string, target: TargetDef) {
 	if (lstatSync(source).isDirectory()) {
-		verifyFolderExists(target);
+		verifyFolderExists(target.path);
 
 		readdirSync(source).forEach((file) => {
 			const curSource = join(source, file);
 
 			if (lstatSync(curSource).isDirectory()) {
-				copyFolderRecursiveSync(curSource, target, toTypescript, toSSR);
+				copyFolderRecursiveSync(curSource, target);
 			} else {
-				copyFileSync(curSource, target, toTypescript, toSSR);
+				copyFileSync(curSource, target);
 			}
 		});
 	} else {
-		copyFileSync(source, target, toTypescript, toSSR);
+		copyFileSync(source, target);
 	}
 
 	return `copying ${source} => ${target}`;

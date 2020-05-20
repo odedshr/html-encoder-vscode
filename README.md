@@ -25,10 +25,10 @@ npm test
 
 1. Add 'html-encode' section in your `package.json`:
 
-   ```javascript
+   ```typescript
    html-encode: [{
       source: string;
-      target?: string;
+      target?: string | string[] | { path:string, ts?: boolean, ssr?: boolean }[]
    }];
 
    ```
