@@ -256,7 +256,9 @@ export default class NodeParser {
 					instructions.push(`self.set[${liveId}] = { node, type: 'attribute', 'attrName': '${attrName}'}`);
 				}
 			} else {
-				instructions.push(`self.set[${liveId}] = { node, type: 'attribute' }`);
+				if (liveId) {
+					instructions.push(`self.set[${liveId}] = { node, type: 'attribute' }`);
+				}
 				//no variable provided; setting attributeMap
 				const addToLiveList = liveId
 					? `self.set[\`${liveId}#\${k}\`] = { node, type: 'attribute', 'attrName': k };`

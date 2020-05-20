@@ -10,22 +10,29 @@ type Entry = {
 
 const packageJSON = JSON.parse(readFileSync(`${process.cwd()}/package.json`, 'utf-8'));
 const entries = packageJSON['html-encode'] || [];
-const toTypescript = !!packageJSON['html-encode-to-ts'];
+const args = process.argv;
+const toTypescript = args.indexOf('ts') > -1;
+const toSSR = args.indexOf('ssr') > -1;
 
 entries.map((entry: Entry) => {
 	const targets = entry.target ? toArray(entry.target) : false;
 
-	return toArray(entry.source).map(source => {
+	return toArray(entry.source).map((source) => {
 		return watch(source)
-			.on('add', path => copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript))
-			.on('change', path => copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript))
-			.on('unlink', path => remove(source, path, targets || [replaceFileExtension(path, toTypescript)]))
+			.on('add', (path) =>
+				copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR)
+			)
+			.on('change', (path) =>
+				copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR)
+			)
+			.on('unlink', (path) => remove(source, path, targets || [replaceFileExtension(path, toTypescript)]))
 			.on(
 				'addDir',
-				path =>
-					source !== path && copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript)
+				(path) =>
+					source !== path &&
+					copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR)
 			)
-			.on('unlinkDir', path => remove(source, path, targets || [replaceFileExtension(path, toTypescript)]));
+			.on('unlinkDir', (path) => remove(source, path, targets || [replaceFileExtension(path, toTypescript)]));
 	});
 });
 
@@ -38,16 +45,17 @@ function getTargetPath(source: string, file: string, target: string) {
 }
 
 function remove(source: string, file: string, targets: string[]) {
-	targets.forEach(target => removeFileSync(getTargetPath(source, replaceFileExtension(file, toTypescript), target)));
+	targets.forEach((target) => removeFileSync(getTargetPath(source, replaceFileExtension(file, toTypescript), target)));
 }
 
-function copy(source: string, file: string, targets: string[], toTypescript: boolean) {
-	targets.forEach(target =>
+function copy(source: string, file: string, targets: string[], toTypescript: boolean, toSSR: boolean) {
+	targets.forEach((target) =>
 		console.log(
 			copyFolderRecursiveSync(
 				file,
 				getTargetPath(source, replaceFileExtension(file, toTypescript), target),
-				toTypescript
+				toTypescript,
+				toSSR
 			)
 		)
 	);
@@ -57,7 +65,7 @@ function replaceFileExtension(filename: string, toTypescript: boolean) {
 	return filename.replace(/.[^.]{1,10}$/, `.${toTypescript ? 'ts' : 'js'}`);
 }
 
-function copyFileSync(source: string, target: string, toTypescript: boolean) {
+function copyFileSync(source: string, target: string, toTypescript: boolean, toSSR: boolean) {
 	let targetFile = target;
 
 	//if target is a directory a new file with the same name will be created
@@ -75,7 +83,7 @@ function copyFileSync(source: string, target: string, toTypescript: boolean) {
 				return `${memo}/`;
 			}, '');
 	}
-	writeFileSync(targetFile, htmlEncoder(readFileSync(source, { encoding: 'utf-8' }), toTypescript));
+	writeFileSync(targetFile, htmlEncoder(readFileSync(source, { encoding: 'utf-8' }), toTypescript, toSSR));
 }
 
 function verifyFolderExists(folder: string) {
@@ -84,21 +92,21 @@ function verifyFolderExists(folder: string) {
 	}
 }
 
-function copyFolderRecursiveSync(source: string, target: string, toTypescript: boolean) {
+function copyFolderRecursiveSync(source: string, target: string, toTypescript: boolean, toSSR: boolean) {
 	if (lstatSync(source).isDirectory()) {
 		verifyFolderExists(target);
 
-		readdirSync(source).forEach(file => {
+		readdirSync(source).forEach((file) => {
 			const curSource = join(source, file);
 
 			if (lstatSync(curSource).isDirectory()) {
-				copyFolderRecursiveSync(curSource, target, toTypescript);
+				copyFolderRecursiveSync(curSource, target, toTypescript, toSSR);
 			} else {
-				copyFileSync(curSource, target, toTypescript);
+				copyFileSync(curSource, target, toTypescript, toSSR);
 			}
 		});
 	} else {
-		copyFileSync(source, target, toTypescript);
+		copyFileSync(source, target, toTypescript, toSSR);
 	}
 
 	return `copying ${source} => ${target}`;
@@ -107,7 +115,7 @@ function copyFolderRecursiveSync(source: string, target: string, toTypescript: b
 function removeFileSync(path: string) {
 	if (existsSync(path)) {
 		if (lstatSync(path).isDirectory()) {
-			readdirSync(path).forEach(file => removeFileSync(`${path}/${file}`));
+			readdirSync(path).forEach((file) => removeFileSync(`${path}/${file}`));
 			rmdirSync(path);
 		} else {
 			unlinkSync(path); // delete file

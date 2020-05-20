@@ -4,8 +4,11 @@ const requireFromString = require('require-from-string');
 const htmlEncoder = require('../dist/index').default;
 
 function getNode(htmlString, data) {
-	const JSNode = requireFromString(htmlEncoder(htmlString)).default;
-	JSNode.DOMParser = DOMParser;
+	const encoded = htmlEncoder(htmlString).replace(
+		'var JSNode',
+		`var xmldom_1 = require("xmldom");var window = { DOMParser: xmldom_1.DOMParser };var JSNode`
+	);
+	const JSNode = requireFromString(encoded).default;
 	return new JSNode(data);
 }
 

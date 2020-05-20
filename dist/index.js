@@ -4,23 +4,27 @@ var xmldom_1 = require("xmldom");
 var fs_1 = require("fs");
 var parser_1 = require("./parser");
 var domParser = new xmldom_1.DOMParser();
-function htmlEncoder(html, isTypescript) {
+function htmlEncoder(html, isTypescript, isSSR) {
     if (isTypescript === void 0) { isTypescript = false; }
+    if (isSSR === void 0) { isSSR = false; }
     var document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
-    return treeShake(transpile(new parser_1.default(document), isTypescript));
+    return treeShake(transpile(new parser_1.default(document), isTypescript, isSSR));
 }
 exports.default = htmlEncoder;
 function getTemplateFile(isTypescript) {
     return __dirname + "/JSNode." + (isTypescript ? 'ts' : 'js');
 }
-function transpile(parser, isTypescript) {
+function transpile(parser, isTypescript, isSSR) {
     var transpiledString = parser.toString();
+    if (isSSR) {
+        transpiledString += ";//self._SSR = true;\n";
+    }
     if (transpiledString.indexOf('self.set') > -1) {
-        transpiledString += ";self._defineSet(isSSR);";
+        transpiledString += ";self._defineSet(" + isSSR + ");";
     }
     return fs_1.readFileSync(getTemplateFile(isTypescript), {
         encoding: 'utf-8',
-    }).replace(/console\.log\(self, docElm, isSSR\)[;,]/, "this.node = " + transpiledString + ";");
+    }).replace(/console\.log\(self, docElm\)[;,]/, "this.node = " + transpiledString + ";");
 }
 function treeShake(code) {
     findFeatures(code).forEach(function (feature) {

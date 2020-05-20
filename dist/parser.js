@@ -236,7 +236,9 @@ var NodeParser = /** @class */ (function () {
                 }
             }
             else {
-                instructions.push("self.set[" + liveId + "] = { node, type: 'attribute' }");
+                if (liveId) {
+                    instructions.push("self.set[" + liveId + "] = { node, type: 'attribute' }");
+                }
                 //no variable provided; setting attributeMap
                 var addToLiveList = liveId
                     ? "self.set[`" + liveId + "#${k}`] = { node, type: 'attribute', 'attrName': k };"

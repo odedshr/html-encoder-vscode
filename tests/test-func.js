@@ -1,20 +1,17 @@
 const assert = require('assert');
-const { DOMParser } = require('xmldom');
 const requireFromString = require('require-from-string');
 const htmlEncoder = require('../dist/index').default;
 const { writeFileSync } = require('fs');
 
-const domParser = new DOMParser();
-
 function getOutputString(encodedNode, data) {
 	const JSNode = requireFromString(encodedNode).default;
-	const jsNode = new JSNode(data, domParser);
+	const jsNode = new JSNode(data);
 
 	return jsNode.toString();
 }
 
 function test(originalString, data = {}, expectedString, description, testFileName = undefined) {
-	const encodedNode = htmlEncoder(originalString);
+	const encodedNode = htmlEncoder(originalString, false, true);
 
 	try {
 		const actual = getOutputString(encodedNode, data);

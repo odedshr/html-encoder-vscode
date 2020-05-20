@@ -6,16 +6,23 @@ var chokidar_1 = require("chokidar");
 var index_js_1 = require("./index.js");
 var packageJSON = JSON.parse(fs_1.readFileSync(process.cwd() + "/package.json", 'utf-8'));
 var entries = packageJSON['html-encode'] || [];
-var toTypescript = !!packageJSON['html-encode-to-ts'];
+var args = process.argv;
+var toTypescript = args.indexOf('ts') > -1;
+var toSSR = args.indexOf('ssr') > -1;
 entries.map(function (entry) {
     var targets = entry.target ? toArray(entry.target) : false;
     return toArray(entry.source).map(function (source) {
         return chokidar_1.watch(source)
-            .on('add', function (path) { return copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript); })
-            .on('change', function (path) { return copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript); })
+            .on('add', function (path) {
+            return copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR);
+        })
+            .on('change', function (path) {
+            return copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR);
+        })
             .on('unlink', function (path) { return remove(source, path, targets || [replaceFileExtension(path, toTypescript)]); })
             .on('addDir', function (path) {
-            return source !== path && copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript);
+            return source !== path &&
+                copy(source, path, targets || [replaceFileExtension(path, toTypescript)], toTypescript, toSSR);
         })
             .on('unlinkDir', function (path) { return remove(source, path, targets || [replaceFileExtension(path, toTypescript)]); });
     });
@@ -29,15 +36,15 @@ function getTargetPath(source, file, target) {
 function remove(source, file, targets) {
     targets.forEach(function (target) { return removeFileSync(getTargetPath(source, replaceFileExtension(file, toTypescript), target)); });
 }
-function copy(source, file, targets, toTypescript) {
+function copy(source, file, targets, toTypescript, toSSR) {
     targets.forEach(function (target) {
-        return console.log(copyFolderRecursiveSync(file, getTargetPath(source, replaceFileExtension(file, toTypescript), target), toTypescript));
+        return console.log(copyFolderRecursiveSync(file, getTargetPath(source, replaceFileExtension(file, toTypescript), target), toTypescript, toSSR));
     });
 }
 function replaceFileExtension(filename, toTypescript) {
     return filename.replace(/.[^.]{1,10}$/, "." + (toTypescript ? 'ts' : 'js'));
 }
-function copyFileSync(source, target, toTypescript) {
+function copyFileSync(source, target, toTypescript, toSSR) {
     var targetFile = target;
     //if target is a directory a new file with the same name will be created
     if (fs_1.existsSync(target)) {
@@ -55,28 +62,28 @@ function copyFileSync(source, target, toTypescript) {
             return memo + "/";
         }, '');
     }
-    fs_1.writeFileSync(targetFile, index_js_1.default(fs_1.readFileSync(source, { encoding: 'utf-8' }), toTypescript));
+    fs_1.writeFileSync(targetFile, index_js_1.default(fs_1.readFileSync(source, { encoding: 'utf-8' }), toTypescript, toSSR));
 }
 function verifyFolderExists(folder) {
     if (!fs_1.existsSync(folder)) {
         fs_1.mkdirSync(folder);
     }
 }
-function copyFolderRecursiveSync(source, target, toTypescript) {
+function copyFolderRecursiveSync(source, target, toTypescript, toSSR) {
     if (fs_1.lstatSync(source).isDirectory()) {
         verifyFolderExists(target);
         fs_1.readdirSync(source).forEach(function (file) {
             var curSource = path_1.join(source, file);
             if (fs_1.lstatSync(curSource).isDirectory()) {
-                copyFolderRecursiveSync(curSource, target, toTypescript);
+                copyFolderRecursiveSync(curSource, target, toTypescript, toSSR);
             }
             else {
-                copyFileSync(curSource, target, toTypescript);
+                copyFileSync(curSource, target, toTypescript, toSSR);
             }
         });
     }
     else {
-        copyFileSync(source, target, toTypescript);
+        copyFileSync(source, target, toTypescript, toSSR);
     }
     return "copying " + source + " => " + target;
 }

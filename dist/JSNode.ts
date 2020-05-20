@@ -1,14 +1,11 @@
 declare type KeydObject = { [key: string]: any };
 declare type Property = { type: 'text' | 'html' | 'attribute'; attrName?: string; node: Element };
 
-interface DOMParser {
-	parseFromString(str: string, type: SupportedType): Document;
-}
+// feature _SSR
+import { DOMParser } from 'xmldom';
+const window = { DOMParser: DOMParser };
 
-declare var DOMParser: {
-	prototype: DOMParser;
-	new (): DOMParser;
-};
+// feature _SSR end
 
 export default class JSNode {
 	set: { [key: string]: Property } = {};
@@ -17,8 +14,8 @@ export default class JSNode {
 	domParser: DOMParser;
 	docElm: Document;
 
-	constructor(data: object, domParserInstance?: DOMParser, isSSR = false) {
-		this.domParser = this.getDOMParser(domParserInstance);
+	constructor(data: object) {
+		this.domParser = new window.DOMParser();
 
 		this.docElm = this.getDocElm();
 
@@ -30,7 +27,7 @@ export default class JSNode {
 		const docElm = this.docElm;
 		// main code goes here:
 		//@ts-ignore returned value might be DocumentFragment which isn't a childNode, which might cause tsc to complain
-		console.log(self, docElm, isSSR);
+		console.log(self, docElm);
 		// end of main code
 
 		const originalToString = this.node.toString;
@@ -42,24 +39,6 @@ export default class JSNode {
 		return typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
 	}
 
-	private getDOMParser(domParserInstance?: DOMParser): DOMParser {
-		if (domParserInstance) {
-			return domParserInstance;
-		}
-
-		const _get = function (item: KeydObject, key: string) {
-			return item[key];
-		};
-
-		if (this.constructor.hasOwnProperty('DOMParser')) {
-			return new (_get(this.constructor, 'DOMParser'))();
-		}
-		if (typeof window !== 'undefined' && window.DOMParser) {
-			return new window.DOMParser();
-		} else {
-			throw new ReferenceError('DOMParser is not defined');
-		}
-	}
 	// feature _setDocumentType
 	protected _setDocumentType(name: string, publicId: string, systemId: string) {
 		const nodeDoctype = this.docElm.implementation.createDocumentType(name, publicId, systemId);

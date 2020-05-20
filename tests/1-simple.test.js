@@ -1,15 +1,7 @@
 const assert = require('assert');
-const requireFromString = require('require-from-string');
-const htmlEncoder = require('../dist/index').default;
 const { test } = require('./test-func.js');
 
 describe('htmlEncoder: basic operations', () => {
-	it('fails when no DOMParser provided', () => {
-		const Node = requireFromString(htmlEncoder('<div>Fail</div>')).default;
-
-		assert.throws(() => new Node(), new ReferenceError('DOMParser is not defined'), 'Fails due to no DOMParser');
-	});
-
 	it('converts static html', () =>
 		test('<div>Hello <b>World</b></div>', {}, '<div>Hello <b>World</b></div>', 'Got expected results'));
 

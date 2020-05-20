@@ -6,13 +6,7 @@ declare type Property = {
     attrName?: string;
     node: Element;
 };
-interface DOMParser {
-    parseFromString(str: string, type: SupportedType): Document;
-}
-declare var DOMParser: {
-    prototype: DOMParser;
-    new (): DOMParser;
-};
+import { DOMParser } from 'xmldom';
 export default class JSNode {
     set: {
         [key: string]: Property;
@@ -23,9 +17,8 @@ export default class JSNode {
     node: ChildNode;
     domParser: DOMParser;
     docElm: Document;
-    constructor(data: object, domParserInstance?: DOMParser, isSSR?: boolean);
+    constructor(data: object);
     private getDocElm;
-    private getDOMParser;
     protected _setDocumentType(name: string, publicId: string, systemId: string): void;
     protected _defineSet(isSSR: boolean): void;
     _getSubTemplate(templateName: string): any;

@@ -25,20 +25,23 @@ npm test
 
 1. Add 'html-encode' section in your `package.json`:
 
-   ```json
+   ```javascript
    html-encode: [{
       source: string;
       target?: string;
    }];
 
-   html-encode-to-ts?: boolean;
    ```
 
 `html-encode` is an array of source-target couples, though if target is not provided the js/ts file will be created
 in the source folder.
-`source` can use _ as wildcard, for example `src/\*\*/_.template.html`. Unless specifying target file the output will be the same filename as the source but with js/ts extension. When`html-encode-to-ts` is set to true output file will be typescript.
+`source` can use _ as wildcard, for example `src/\*\*/_.template.html`. Unless specifying target file the output will be the same filename as the source but with js/ts extension.
 
-1. Run 'node ./node_modules/html-encoder/dist/cli.js`
+1. Run 'node ./node_modules/html-encoder/dist/cli.js [options]`
+
+Options:
+ts Outputs a typescript file
+ssr Maps reactive elements for server-side-rendering
 
 ## Usage via code
 

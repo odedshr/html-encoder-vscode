@@ -1,11 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// feature _SSR
+var xmldom_1 = require("xmldom");
+var window = { DOMParser: xmldom_1.DOMParser };
+// feature _SSR end
 var JSNode = /** @class */ (function () {
-    function JSNode(data, domParserInstance, isSSR) {
+    function JSNode(data) {
         var _this = this;
-        if (isSSR === void 0) { isSSR = false; }
         this.set = {};
-        this.domParser = this.getDOMParser(domParserInstance);
+        this.domParser = new window.DOMParser();
         this.docElm = this.getDocElm();
         this.data = data;
         var self = this;
@@ -13,7 +16,7 @@ var JSNode = /** @class */ (function () {
         var docElm = this.docElm;
         // main code goes here:
         //@ts-ignore returned value might be DocumentFragment which isn't a childNode, which might cause tsc to complain
-        console.log(self, docElm, isSSR);
+        console.log(self, docElm);
         // end of main code
         var originalToString = this.node.toString;
         this.node.toString = function () { return fixHTMLTags(originalToString.call(_this.node)); };
@@ -21,23 +24,6 @@ var JSNode = /** @class */ (function () {
     }
     JSNode.prototype.getDocElm = function () {
         return typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
-    };
-    JSNode.prototype.getDOMParser = function (domParserInstance) {
-        if (domParserInstance) {
-            return domParserInstance;
-        }
-        var _get = function (item, key) {
-            return item[key];
-        };
-        if (this.constructor.hasOwnProperty('DOMParser')) {
-            return new (_get(this.constructor, 'DOMParser'))();
-        }
-        if (typeof window !== 'undefined' && window.DOMParser) {
-            return new window.DOMParser();
-        }
-        else {
-            throw new ReferenceError('DOMParser is not defined');
-        }
     };
     // feature _setDocumentType
     JSNode.prototype._setDocumentType = function (name, publicId, systemId) {

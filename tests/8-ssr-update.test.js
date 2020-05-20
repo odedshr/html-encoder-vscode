@@ -6,41 +6,13 @@ const htmlEncoder = require('../dist/index').default;
 const domParser = new DOMParser();
 
 function getNode(htmlString, data) {
-	const { init, default: JSNode } = requireFromString(htmlEncoder(htmlString, false));
+	const { init, default: JSNode } = requireFromString(htmlEncoder(htmlString, false, true));
 	const node = new JSNode(data, domParser, true);
 	// the outputs of domxml don't have
 	// node.querySelectorAll = querySelectorAll;
 	init(node, domParser);
 	return node;
 }
-
-// function querySelectorAll(queryString) {
-// 	const criteria = parseQueryString(queryString);
-// 	return flatTree(this).filter((node) => criteria.find((c) => isMatch(node, c)));
-// }
-
-// function isMatch(node, criteria) {
-// 	if (node.attributes) {
-// 		return Array.from(node.attributes).find((attr) => attr.name === criteria.attribute);
-// 	}
-// 	return false;
-// }
-
-// function parseQueryString(queryString) {
-// 	const queryRegex = /\[(.*?)\],?/g;
-// 	const criteria = [];
-// 	let match;
-// 	while ((match = queryRegex.exec(queryString))) {
-// 		criteria.push({ attribute: match[1] });
-// 	}
-// 	return criteria;
-// }
-
-// function flatTree(node) {
-// 	let list = node.childNodes ? Array.from(node.childNodes).map((child) => flatTree(child)) : [];
-// 	list.unshift(node);
-// 	return list.flat();
-// }
 
 describe('htmlEncoder: server-side-rendering tagging', () => {
 	it('supports <?=text #liveId?>', () => {
