@@ -27,7 +27,7 @@ npm test
 
    ```typescript
    html-encode: [{
-      source: string;
+      source: string | string[];
       target?: string | string[] | { path:string, ts?: boolean, ssr?: boolean }[]
    }];
 
@@ -35,7 +35,8 @@ npm test
 
 `html-encode` is an array of source-target couples, though if target is not provided the js/ts file will be created
 in the source folder.
-`source` can use _ as wildcard, for example `src/\*\*/_.template.html`. Unless specifying target file the output will be the same filename as the source but with js/ts extension.
+`source` can use _ as wildcard, for example `src/\*\*/_.template.html`.
+`target` can be a simple string - a single filename or a folder, a list of targets, or a list of targets with different spec per target - typescript or server-side-rendering (see below). Unless specifying a target file the output will be the same filename as the source but with js/ts extension.
 
 1. Run 'node ./node_modules/html-encoder/dist/cli.js [options]`
 

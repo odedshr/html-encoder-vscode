@@ -20,10 +20,10 @@ entries.map((entry: Entry) => {
 
 	return toArray(entry.source).map((source: string) => {
 		return watch(source)
-			.on('add', (path) => copy(source, path, getTargets(targets, path)))
-			.on('change', (path) => copy(source, path, getTargets(targets, path)))
+			.on('add', (path) => copy(path, getTargets(targets, path)))
+			.on('change', (path) => copy(path, getTargets(targets, path)))
 			.on('unlink', (path) => remove(source, path, getTargets(targets, path)))
-			.on('addDir', (path) => source !== path && copy(source, path, getTargets(targets, path)))
+			.on('addDir', (path) => source !== path && copy(path, getTargets(targets, path)))
 			.on('unlinkDir', (path) => remove(source, path, getTargets(targets, path)));
 	});
 });
@@ -34,11 +34,23 @@ function standarizeTargets(targets: string | string[] | TargetDef[], ts: boolean
 	});
 }
 
-function getTargets(targets: TargetDef[], path: string) {
-	return targets.map((target) => ({
-		path: replaceFileExtension(path, target.ts),
-		...target,
-	}));
+function getTargets(targets: TargetDef[], sourcePath: string) {
+	return targets.map((target) => {
+		let path = replaceFileExtension(sourcePath, target.ts);
+		if (target.path !== undefined) {
+			path = (isTargetFolder(target.path))
+				? [...target.path.split('/'), path.split('/').pop()].join('/').replace('//', '/')
+				: target.path;
+		}
+		return { path, ts: target.ts, ssr: target.ssr };
+	});
+}
+
+// return true if path doesn't end with '/', is an existing folder or last element has no '.' in it
+function isTargetFolder(path:string) {
+	return path.charAt(path.length - 1) === '/' || 
+		(existsSync(path) && lstatSync(path).isDirectory()) || 
+		path.split('/').pop().indexOf('.') ===-1
 }
 
 function toArray(element: any) {
@@ -46,6 +58,7 @@ function toArray(element: any) {
 }
 
 function getTargetPath(source: string, file: string, target: string) {
+	console.log('\n\ngetTargetPath', source, target);
 	return file.replace(source, target);
 }
 
@@ -55,13 +68,10 @@ function remove(source: string, file: string, targets: TargetDef[]) {
 	);
 }
 
-function copy(source: string, file: string, targets: TargetDef[]) {
+function copy(file: string, targets: TargetDef[]) {
 	targets.forEach((target) =>
 		console.log(
-			copyFolderRecursiveSync(file, {
-				...target,
-				path: getTargetPath(source, replaceFileExtension(file, target.ts), target.path),
-			})
+			copyFolderRecursiveSync(file, target)
 		)
 	);
 }
@@ -114,7 +124,7 @@ function copyFolderRecursiveSync(source: string, target: TargetDef) {
 		copyFileSync(source, target);
 	}
 
-	return `copying ${source} => ${target}`;
+	return `copying ${source} => ${target.path}`;
 }
 
 function removeFileSync(path: string) {
