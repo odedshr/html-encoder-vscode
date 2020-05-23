@@ -45,15 +45,19 @@ var JSNode = /** @class */ (function () {
     JSNode.prototype._defineSet = function (isSSR) {
         if (Object.keys(this.set).length) {
             if (isSSR) {
-                // if (this.node.hasOwnProperty('setAttribute')) {
-                this.node.setAttribute('data-live-root', '');
-                // }
+                // if node is Document refere to the first child (the <html>);
+                (this.node.nodeType === 9 ? this.findHTMLChildren(this.node) : [this.node]).forEach(function (node) {
+                    return node.setAttribute('data-live-root', '');
+                });
                 addServerReactiveFunctionality(this.set);
             }
             else {
                 addReactiveFunctionality(this.node, this.set, this.domParser);
             }
         }
+    };
+    JSNode.prototype.findHTMLChildren = function (root) {
+        return Array.from(root.childNodes).filter(function (child) { return !!child.setAttribute; });
     };
     // feature _defineSet end
     // feature _getSubTemplate
@@ -235,44 +239,48 @@ function init(root, domParser) {
 }
 exports.init = init;
 function initChild(set, node, domParser) {
-    if (node.hasAttribute('id')) {
-        set[node.getAttribute('id')] = { type: 'html', node: node };
-    }
-    if (node.hasAttribute('data-live-text')) {
-        node
-            .getAttribute('data-live-text')
-            .split(';')
-            .forEach(function (attr) {
-            var _a = attr.split(':'), childIndex = _a[0], varName = _a[1];
-            set[varName] = { type: 'text', node: node.childNodes[+childIndex] };
-        });
-    }
-    if (node.hasAttribute('data-live-html')) {
-        node
-            .getAttribute('data-live-html')
-            .split(';')
-            .forEach(function (attr) {
-            var _a = attr.split(':'), childIndex = _a[0], varName = _a[1];
-            set[varName] = { type: 'html', node: node.childNodes[+childIndex] };
-        });
-    }
-    if (node.hasAttribute('data-live-map')) {
-        set[node.getAttribute('data-live-map')] = { type: 'attribute', node: node };
-    }
-    if (node.hasAttribute('data-live-attr')) {
-        node
-            .getAttribute('data-live-attr')
-            .split(';')
-            .forEach(function (attr) {
-            var _a = attr.split(':'), attrName = _a[0], varName = _a[1];
-            set[varName] = { type: 'attribute', node: node, attrName: attrName };
-        });
+    if (!!node.hasAttribute) {
+        if (node.hasAttribute('id')) {
+            set[node.getAttribute('id')] = { type: 'html', node: node };
+        }
+        if (node.hasAttribute('data-live-text')) {
+            node
+                .getAttribute('data-live-text')
+                .split(';')
+                .forEach(function (attr) {
+                var _a = attr.split(':'), childIndex = _a[0], varName = _a[1];
+                set[varName] = { type: 'text', node: node.childNodes[+childIndex] };
+            });
+        }
+        if (node.hasAttribute('data-live-html')) {
+            node
+                .getAttribute('data-live-html')
+                .split(';')
+                .forEach(function (attr) {
+                var _a = attr.split(':'), childIndex = _a[0], varName = _a[1];
+                set[varName] = { type: 'html', node: node.childNodes[+childIndex] };
+            });
+        }
+        if (node.hasAttribute('data-live-map')) {
+            set[node.getAttribute('data-live-map')] = { type: 'attribute', node: node };
+        }
+        if (node.hasAttribute('data-live-attr')) {
+            node
+                .getAttribute('data-live-attr')
+                .split(';')
+                .forEach(function (attr) {
+                var _a = attr.split(':'), attrName = _a[0], varName = _a[1];
+                set[varName] = { type: 'attribute', node: node, attrName: attrName };
+            });
+        }
     }
     var children = node.childNodes;
     for (var i = 0; i < children.length; i++) {
         var child = children.item(i);
-        if (child.hasAttribute && !child.hasAttribute('data-live-root')) {
-            initChild(set, child, domParser);
+        if (!!child.hasAttribute) {
+            if (!child.hasAttribute('data-live-root')) {
+                initChild(set, child, domParser);
+            }
         }
     }
 }

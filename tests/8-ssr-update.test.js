@@ -8,10 +8,13 @@ const domParser = new DOMParser();
 function getNode(htmlString, data) {
 	const { init, default: JSNode } = requireFromString(htmlEncoder(htmlString, false, true));
 	const node = new JSNode(data, domParser, true);
-	// the outputs of domxml don't have
-	// node.querySelectorAll = querySelectorAll;
-	init(node, domParser);
+	// if root is Document then children would be roots
+	(node.nodeType === 9 ? findHTMLChildren(node) : [node]).forEach((child) => init(child, domParser));
 	return node;
+}
+
+function findHTMLChildren(root) {
+	return Array.from(root.childNodes).filter((child) => !!child.setAttribute);
 }
 
 describe('htmlEncoder: server-side-rendering tagging', () => {
@@ -144,5 +147,39 @@ describe('htmlEncoder: server-side-rendering tagging', () => {
 			'binded html'
 		);
 		assert.equal(Object.keys(parent.set).toString(), 'parent,sibling', `child variables weren't added to parents`);
+	});
+
+	it('supports live-update full document', () => {
+		const node = getNode(
+			`<!DOCTYPE html>
+			<html class="no-js" lang="">
+				<body>
+					<div id="foo"></div>
+				</body>
+			</html>`,
+			{}
+		);
+		assert.equal(
+			node.toString(),
+			`<!DOCTYPE html>
+			<html class="no-js" lang="" data-live-root="">
+				<body>
+					<div id="foo"></div>
+				</body>
+			</html>`,
+			'binded html'
+		);
+		// node is a document, so the root is the <html> which is the 3 child
+		node.childNodes.item(2).set.foo.setAttribute('value', 'bar');
+		assert.equal(
+			node.toString(),
+			`<!DOCTYPE html>
+			<html class="no-js" lang="" data-live-root="">
+				<body>
+					<div id="foo" value="bar"></div>
+				</body>
+			</html>`,
+			'binded html updated'
+		);
 	});
 });

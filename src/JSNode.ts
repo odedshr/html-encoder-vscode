@@ -58,14 +58,19 @@ export default class JSNode {
 	protected _defineSet(isSSR: boolean) {
 		if (Object.keys(this.set).length) {
 			if (isSSR) {
-				// if (this.node.hasOwnProperty('setAttribute')) {
-				(<HTMLElement>this.node).setAttribute('data-live-root', '');
-				// }
+				// if node is Document refere to the first child (the <html>);
+				(this.node.nodeType === 9 ? this.findHTMLChildren(this.node) : [this.node]).forEach((node: HTMLElement) =>
+					node.setAttribute('data-live-root', '')
+				);
 				addServerReactiveFunctionality(this.set);
 			} else {
 				addReactiveFunctionality(this.node, this.set, this.domParser);
 			}
 		}
+	}
+
+	private findHTMLChildren(root: ChildNode): HTMLElement[] {
+		return <HTMLElement[]>Array.from(root.childNodes).filter((child) => !!(<HTMLElement>child).setAttribute);
 	}
 
 	// feature _defineSet end
@@ -252,49 +257,53 @@ export function init(root: Element, domParser: DOMParser) {
 }
 
 function initChild(set: { [key: string]: Property }, node: Element, domParser: DOMParser) {
-	if (node.hasAttribute('id')) {
-		set[node.getAttribute('id')] = { type: 'html', node };
-	}
+	if (!!node.hasAttribute) {
+		if (node.hasAttribute('id')) {
+			set[node.getAttribute('id')] = { type: 'html', node };
+		}
 
-	if (node.hasAttribute('data-live-text')) {
-		node
-			.getAttribute('data-live-text')
-			.split(';')
-			.forEach((attr) => {
-				const [childIndex, varName] = attr.split(':');
-				set[varName] = { type: 'text', node: <Element>node.childNodes[+childIndex] };
-			});
-	}
+		if (node.hasAttribute('data-live-text')) {
+			node
+				.getAttribute('data-live-text')
+				.split(';')
+				.forEach((attr) => {
+					const [childIndex, varName] = attr.split(':');
+					set[varName] = { type: 'text', node: <Element>node.childNodes[+childIndex] };
+				});
+		}
 
-	if (node.hasAttribute('data-live-html')) {
-		node
-			.getAttribute('data-live-html')
-			.split(';')
-			.forEach((attr) => {
-				const [childIndex, varName] = attr.split(':');
-				set[varName] = { type: 'html', node: <Element>node.childNodes[+childIndex] };
-			});
-	}
+		if (node.hasAttribute('data-live-html')) {
+			node
+				.getAttribute('data-live-html')
+				.split(';')
+				.forEach((attr) => {
+					const [childIndex, varName] = attr.split(':');
+					set[varName] = { type: 'html', node: <Element>node.childNodes[+childIndex] };
+				});
+		}
 
-	if (node.hasAttribute('data-live-map')) {
-		set[node.getAttribute('data-live-map')] = { type: 'attribute', node };
-	}
+		if (node.hasAttribute('data-live-map')) {
+			set[node.getAttribute('data-live-map')] = { type: 'attribute', node };
+		}
 
-	if (node.hasAttribute('data-live-attr')) {
-		node
-			.getAttribute('data-live-attr')
-			.split(';')
-			.forEach((attr) => {
-				const [attrName, varName] = attr.split(':');
-				set[varName] = { type: 'attribute', node, attrName };
-			});
+		if (node.hasAttribute('data-live-attr')) {
+			node
+				.getAttribute('data-live-attr')
+				.split(';')
+				.forEach((attr) => {
+					const [attrName, varName] = attr.split(':');
+					set[varName] = { type: 'attribute', node, attrName };
+				});
+		}
 	}
 
 	const children = node.childNodes;
 	for (let i = 0; i < children.length; i++) {
 		const child: Element = <Element>children.item(i);
-		if (child.hasAttribute && !child.hasAttribute('data-live-root')) {
-			initChild(set, child, domParser);
+		if (!!child.hasAttribute) {
+			if (!child.hasAttribute('data-live-root')) {
+				initChild(set, child, domParser);
+			}
 		}
 	}
 }

@@ -21,6 +21,7 @@ export default class JSNode {
     private getDocElm;
     protected _setDocumentType(name: string, publicId: string, systemId: string): void;
     protected _defineSet(isSSR: boolean): void;
+    private findHTMLChildren;
     _getSubTemplate(templateName: string): any;
     _forEach(iteratorName: string, indexName: string, varName: string, fn: Function): void;
     _getPreceedingOrSelf(elm: HTMLElement): HTMLElement;

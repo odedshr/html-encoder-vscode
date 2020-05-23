@@ -91,4 +91,37 @@ describe('htmlEncoder: real-time-updates', () => {
 		node.set.field.setAttribute('value', 'claire');
 		assert.equal(node.set.value, 'claire', 'value read from set');
 	});
+
+	it('supports live-update full document', () => {
+		const node = getNode(
+			`<!DOCTYPE html>
+			<html class="no-js" lang="">
+				<body>
+					<div id="foo"></div>
+				</body>
+			</html>`,
+			{}
+		);
+		assert.equal(
+			node.toString(),
+			`<!DOCTYPE html>
+			<html class="no-js" lang="">
+				<body>
+					<div id="foo"></div>
+				</body>
+			</html>`,
+			'binded html'
+		);
+		node.set.foo.setAttribute('value', 'bar');
+		assert.equal(
+			node.toString(),
+			`<!DOCTYPE html>
+			<html class="no-js" lang="">
+				<body>
+					<div id="foo" value="bar"></div>
+				</body>
+			</html>`,
+			'binded html updated'
+		);
+	});
 });
