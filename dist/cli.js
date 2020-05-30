@@ -28,7 +28,7 @@ var args = process.argv;
 var ts = args.indexOf('ts') > -1;
 var ssr = args.indexOf('ssr') > -1;
 entries.map(function (entry) {
-    var targets = standarizeTargets(entry.target || [{ ts: ts, ssr: ssr }], ts, ssr);
+    var targets = standardizeTargets(entry.target || [{ ts: ts, ssr: ssr }], ts, ssr);
     return toArray(entry.source).map(function (source) {
         return chokidar_1.watch(source)
             .on('add', function (path) { return copy(path, getTargets(targets, path)); })
@@ -38,7 +38,7 @@ entries.map(function (entry) {
             .on('unlinkDir', function (path) { return remove(source, path, getTargets(targets, path)); });
     });
 });
-function standarizeTargets(targets, ts, ssr) {
+function standardizeTargets(targets, ts, ssr) {
     return toArray(targets).map(function (target) {
         return typeof target === 'string' ? { path: target, ts: ts, ssr: ssr } : __assign({ ts: ts, ssr: ssr }, target);
     });
@@ -47,7 +47,7 @@ function getTargets(targets, sourcePath) {
     return targets.map(function (target) {
         var path = replaceFileExtension(sourcePath, target.ts);
         if (target.path !== undefined) {
-            path = (isTargetFolder(target.path))
+            path = isTargetFolder(target.path)
                 ? __spreadArrays(target.path.split('/'), [path.split('/').pop()]).join('/').replace('//', '/')
                 : target.path;
         }
@@ -56,9 +56,9 @@ function getTargets(targets, sourcePath) {
 }
 // return true if path doesn't end with '/', is an existing folder or last element has no '.' in it
 function isTargetFolder(path) {
-    return path.charAt(path.length - 1) === '/' ||
+    return (path.charAt(path.length - 1) === '/' ||
         (fs_1.existsSync(path) && fs_1.lstatSync(path).isDirectory()) ||
-        path.split('/').pop().indexOf('.') === -1;
+        path.split('/').pop().indexOf('.') === -1);
 }
 function toArray(element) {
     return Array.isArray(element) ? element : [element];
@@ -73,9 +73,7 @@ function remove(source, file, targets) {
     });
 }
 function copy(file, targets) {
-    targets.forEach(function (target) {
-        return console.log(copyFolderRecursiveSync(file, target));
-    });
+    targets.forEach(function (target) { return console.log(copyFolderRecursiveSync(file, target)); });
 }
 function replaceFileExtension(filename, toTypescript) {
     return filename.replace(/.[^.]{1,10}$/, "." + (toTypescript ? 'ts' : 'js'));

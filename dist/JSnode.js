@@ -1,16 +1,71 @@
 "use strict";
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
+var __spreadArrays = (this && this.__spreadArrays) || function () {
+    for (var s = 0, i = 0, il = arguments.length; i < il; i++) s += arguments[i].length;
+    for (var r = Array(s), k = 0, i = 0; i < il; i++)
+        for (var a = arguments[i], j = 0, jl = a.length; j < jl; j++, k++)
+            r[k] = a[j];
+    return r;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 // feature _SSR
+// _SSR()
 var xmldom_1 = require("xmldom");
 var window = { DOMParser: xmldom_1.DOMParser };
 // feature _SSR end
+function getNode(data) {
+    if (data === void 0) { data = {}; }
+    return new JSNode(data);
+}
+exports.getNode = getNode;
+function initNode(existingNode) {
+    return new JSNode({}, existingNode);
+}
+exports.initNode = initNode;
 var JSNode = /** @class */ (function () {
-    function JSNode(data) {
+    function JSNode(data, existingNode) {
         var _this = this;
         this.set = {};
         this.domParser = new window.DOMParser();
         this.docElm = this.getDocElm();
         this.data = data;
+        if (existingNode) {
+            this.node = existingNode;
+            this.initExitingElement();
+        }
+        else {
+            this.fillNode();
+        }
+        var self = this;
+        var originalToString = this.node.toString;
+        this.node.toString = function () { return self.fixHTMLTags(originalToString.call(_this.node)); };
+        return this.node;
+    }
+    JSNode.prototype.initExitingElement = function () {
+        var self = this;
+        if (this.node.nodeType === 9) {
+            Array.from(this.node.childNodes)
+                .filter(function (child) { return !!child.setAttribute; })
+                .forEach(function (child) { return initChild(self, child); });
+        }
+        else {
+            initChild(self, this.node);
+        }
+        // feature _defineSet
+        addReactiveFunctionality(this.node, this.set, this.domParser);
+        // feature _defineSet end
+    };
+    JSNode.prototype.fillNode = function () {
         var self = this;
         //docElm is used by injected code
         var docElm = this.docElm;
@@ -18,13 +73,18 @@ var JSNode = /** @class */ (function () {
         //@ts-ignore returned value might be DocumentFragment which isn't a childNode, which might cause tsc to complain
         console.log(self, docElm);
         // end of main code
-        var originalToString = this.node.toString;
-        this.node.toString = function () { return fixHTMLTags(originalToString.call(_this.node)); };
-        return this.node;
-    }
+    };
     JSNode.prototype.getDocElm = function () {
         return typeof document !== 'undefined' ? document : this.domParser.parseFromString('<html></html>', 'text/xml');
     };
+    // feature register
+    JSNode.prototype.register = function (key, value) {
+        if (!this.set[key]) {
+            this.set[key] = [];
+        }
+        this.set[key].push(value);
+    };
+    // feature register end
     // feature _setDocumentType
     JSNode.prototype._setDocumentType = function (name, publicId, systemId) {
         var nodeDoctype = this.docElm.implementation.createDocumentType(name, publicId, systemId);
@@ -45,7 +105,7 @@ var JSNode = /** @class */ (function () {
     JSNode.prototype._defineSet = function (isSSR) {
         if (Object.keys(this.set).length) {
             if (isSSR) {
-                // if node is Document refere to the first child (the <html>);
+                // if node is Document refer to the first child (the <html>);
                 (this.node.nodeType === 9 ? this.findHTMLChildren(this.node) : [this.node]).forEach(function (node) {
                     return node.setAttribute('data-live-root', '');
                 });
@@ -68,24 +128,25 @@ var JSNode = /** @class */ (function () {
     };
     // feature _getSubTemplate end
     // feature _forEach
-    JSNode.prototype._forEach = function (iteratorName, indexName, varName, fn) {
+    JSNode.prototype._forEach = function (iteratorName, indexName, list, parent, fn) {
         var self = this;
         var orig = {
             iterator: self._getValue(this.data, iteratorName),
             index: self._getValue(this.data, indexName),
         };
-        var list = self._getValue(this.data, varName);
-        for (var k in list) {
-            self._setValue(this.data, indexName, k);
-            self._setValue(this.data, iteratorName, list[k]);
-            fn();
+        var items = [];
+        for (var id in list) {
+            self._setValue(this.data, indexName, id);
+            self._setValue(this.data, iteratorName, list[id]);
+            items.push(getAddedChildren(parent, fn));
         }
         self._setValue(this.data, iteratorName, orig.iterator);
         self._setValue(this.data, indexName, orig.index);
+        return items;
     };
     // feature _forEach end
-    // feature _getPreceedingOrSelf
-    JSNode.prototype._getPreceedingOrSelf = function (elm) {
+    // feature _getPrecedingOrSelf
+    JSNode.prototype._getPrecedingOrSelf = function (elm) {
         //@ts-ignore
         var children = Array.from(elm.childNodes);
         children.reverse();
@@ -93,7 +154,7 @@ var JSNode = /** @class */ (function () {
             return child.nodeType === 1;
         }) || elm);
     };
-    // feature _getPreceedingOrSelf end
+    // feature _getPrecedingOrSelf end
     // feature _getValue
     JSNode.prototype._getValue = function (data, path) {
         if (path.match(/^(['"].*(\1))$/)) {
@@ -128,7 +189,6 @@ var JSNode = /** @class */ (function () {
             htmlString = "<span>" + htmlString.replace(/& /g, '&amp; ') + "</span>";
         }
         try {
-            // console.debug ('parsing ', htmlString);
             return this.domParser.parseFromString(htmlString, 'text/xml').firstChild;
         }
         catch (err) {
@@ -136,36 +196,84 @@ var JSNode = /** @class */ (function () {
             return this.docElm.createTextNode(htmlString);
         }
     };
+    // feature _getHTMLNode end
+    // feature fixHTMLTags
+    JSNode.prototype.fixHTMLTags = function (xmlString) {
+        return xmlString.replace(/\<(?!area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)([a-z|A-Z|_|\-|:|0-9]+)([^>]*)\/\>/gm, '<$1$2></$1>');
+    };
     return JSNode;
 }());
 exports.default = JSNode;
+// functions go here
+// feature clone
+function clone(item) {
+    return typeof item === 'object' ? Object.freeze(Array.isArray(item) ? __spreadArrays(item) : __assign({}, item)) : item;
+}
+// feature clone end
+// feature getAddedChildren
+function getAddedChildren(parent, fn) {
+    var items = [];
+    var beforeChildCount = parent.childNodes.length;
+    fn();
+    var afterChildCount = parent.childNodes.length;
+    for (var i = beforeChildCount; i < afterChildCount; i++) {
+        items.push(parent.childNodes.item(i));
+    }
+    return items;
+}
+// feature getAddedChildren end
 // feature _defineSet
 function addServerReactiveFunctionality(set) {
     if (set === void 0) { set = {}; }
+    var _loop_1 = function (key) {
+        set[key].forEach(function (property) {
+            var node = property.node;
+            var parentNode = node.parentNode;
+            switch (property.type) {
+                case 'text':
+                    appendAttribute(parentNode, 'data-live-text', indexOfChild(parentNode.childNodes, node) + "|" + key);
+                    break;
+                case 'html':
+                    if (!node.getAttribute || !(node.getAttribute('id') === key)) {
+                        var parentNode_1 = node.parentNode;
+                        appendAttribute(parentNode_1, 'data-live-html', indexOfChild(parentNode_1.childNodes, node) + "|" + key);
+                    }
+                    break;
+                case 'attribute':
+                    if (property.attrName) {
+                        appendAttribute(node, 'data-live-attr', property.attrName + "|" + key);
+                    }
+                    else {
+                        node.setAttribute('data-live-map', key);
+                    }
+                    break;
+                case 'loop':
+                    {
+                        var _a = property.details, fn = _a.fn, startAt = _a.startAt, items = _a.items, nodes = _a.nodes;
+                        appendAttribute(node, 'data-live-loop', startAt + "|" + key + "|" + fn.name.replace(/bound /, '') + "|" + JSON.stringify(items));
+                        nodes.forEach(function (collection, i) {
+                            return collection.forEach(function (item) { return appendAttribute(item, 'data-live-loop-child', key + "|" + i); });
+                        });
+                    }
+                    break;
+                case 'conditional':
+                    {
+                        var _b = property.details, fn = _b.fn, startAt = _b.startAt, flag = _b.flag, nodes = _b.nodes;
+                        appendAttribute(node, 'data-live-if', startAt + "|" + key + "|" + fn.name.replace(/bound /, '') + "|" + flag);
+                        nodes.forEach(function (collection, i) {
+                            return collection.forEach(function (item) { return appendAttribute(item, 'data-live-if-child', key + "|" + i); });
+                        });
+                    }
+                    break;
+            }
+        });
+    };
     for (var key in set) {
-        var property = set[key];
-        var node = property.node;
-        switch (property.type) {
-            case 'text':
-                var parentNode = node.parentNode;
-                appendAttribute(parentNode, 'data-live-text', Array.from(parentNode.childNodes).indexOf(node) + ":" + key);
-                break;
-            case 'html':
-                if (!node.getAttribute || !(node.getAttribute('id') === key)) {
-                    var parentNode_1 = node.parentNode;
-                    appendAttribute(parentNode_1, 'data-live-html', Array.from(parentNode_1.childNodes).indexOf(node) + ":" + key);
-                }
-                break;
-            case 'attribute':
-                if (property.attrName) {
-                    appendAttribute(node, 'data-live-attr', property.attrName + ":" + key);
-                }
-                else {
-                    node.setAttribute('data-live-map', key);
-                }
-                break;
-        }
+        _loop_1(key);
     }
+}
+function indexOfChild(childNodes, child) {
+    return Array.prototype.indexOf.call(childNodes, child);
 }
 function appendAttribute(node, attributeName, newChild) {
     var value = [newChild];
@@ -185,7 +293,7 @@ function addReactiveFunctionality(node, set, domParser) {
 function getSetProxy(map, domParser) {
     return new Proxy(map, {
         get: function (map, prop) {
-            var property = map[prop];
+            var property = map[prop][0];
             if (property) {
                 switch (property.type) {
                     case 'text':
@@ -193,13 +301,16 @@ function getSetProxy(map, domParser) {
                     case 'html':
                         return property.node;
                     case 'attribute':
-                        return property.node.getAttribute(prop);
+                        return property.node.getAttribute(property.attrName);
+                    case 'loop':
+                        return property.details.items;
+                    case 'conditional':
+                        return property.details.flag;
                 }
             }
         },
         set: function (map, prop, value) {
-            var property = map[prop];
-            if (property) {
+            map[prop].forEach(function (property) {
                 switch (property.type) {
                     case 'text':
                         property.node.data = value;
@@ -207,49 +318,132 @@ function getSetProxy(map, domParser) {
                     case 'html':
                         try {
                             var newNode = typeof value === 'string' ? domParser.parseFromString(value, 'text/xml') : value;
-                            var result = property.node.parentNode.replaceChild(newNode, property.node);
+                            property.node.parentNode.replaceChild(newNode, property.node);
                             property.node = newNode;
-                            return result;
                         }
                         catch (err) {
                             console.error("failed to replace node to " + value, err);
                         }
+                        break;
                     case 'attribute':
                         if (property.attrName) {
                             // single attribute
                             if (value === null) {
-                                return property.node.removeAttribute(property.attrName);
+                                property.node.removeAttribute(property.attrName);
                             }
-                            return property.node.setAttribute(property.attrName, value);
+                            else {
+                                property.node.setAttribute(property.attrName, value);
+                            }
                         }
                         else {
                             // attribute map
                             Object.keys(value).forEach(function (attrName) { return property.node.setAttribute(attrName, value[attrName]); });
                         }
+                        break;
+                    case 'loop':
+                        updateLoop(property, value);
+                        break;
+                    case 'conditional':
+                        updateConditional(property, value);
+                        break;
                 }
-            }
+            });
             return true;
         },
     });
 }
-function init(root, domParser) {
-    var set = {};
-    initChild(set, root, domParser);
-    addReactiveFunctionality(root, set, domParser);
+function countElementsUntilIndex(items, index) {
+    var acc = 0;
+    for (var i = 0; i < index; i++) {
+        acc += items[i].length;
+    }
+    return acc;
 }
-exports.init = init;
-function initChild(set, node, domParser) {
+function updateLoop(property, value) {
+    var parent = property.node;
+    var _a = property.details, fn = _a.fn, items = _a.items, nodes = _a.nodes, startAt = _a.startAt;
+    var instructions = diff(items, value);
+    var removedChildren = instructions.removed.map(function (i) {
+        nodes[i].forEach(function (node) { return parent.removeChild(node); });
+        return nodes[i];
+    });
+    fn(instructions.added).forEach(function (children) { return nodes.push(children); });
+    var updatedNodes = nodes.filter(function (node) { return !removedChildren.includes(node); });
+    instructions.positions.forEach(function (newIndex, i) {
+        if (newIndex !== -1) {
+            var newP = countElementsUntilIndex(updatedNodes, newIndex);
+            var sibling_1 = parent.childNodes.item(startAt + newP);
+            if (sibling_1 !== updatedNodes[i][0]) {
+                updatedNodes[i].forEach(function (child) { return parent.insertBefore(child, sibling_1); });
+            }
+        }
+    });
+    property.details.nodes = updatedNodes;
+    property.details.items = clone(value);
+}
+function diff(source, target) {
+    var placed = target.map(function () { return false; });
+    var output = {
+        removed: [],
+        added: [],
+        positions: [],
+    };
+    source.forEach(function (item, from) {
+        var position = target.findIndex(function (targetItem, j) { return targetItem === item && !placed[j]; });
+        if (position === -1) {
+            output.removed.push(from);
+        }
+        else {
+            output.positions.push(position);
+            placed[position] = true;
+        }
+    });
+    output.removed = output.removed.sort().reverse();
+    target.forEach(function (item, position) {
+        if (!placed[position]) {
+            output.positions.push(position);
+            output.added.push(item);
+        }
+    });
+    return output;
+}
+function updateConditional(property, value) {
+    var parent = property.node;
+    var updatedNodes = [];
+    var _a = property.details, fn = _a.fn, flag = _a.flag, nodes = _a.nodes, startAt = _a.startAt;
+    if (flag && !value) {
+        while (nodes[0].length) {
+            parent.removeChild(nodes[0].pop());
+        }
+    }
+    else if (!flag && value) {
+        updatedNodes = [fn(value)];
+        if (parent.childNodes.length < startAt) {
+            property.details.startAt = parent.childNodes.length - updatedNodes[0].length;
+        }
+        else {
+            var sibling_2 = parent.childNodes.item(startAt);
+            updatedNodes[0].forEach(function (node) { return parent.insertBefore(node, sibling_2); });
+        }
+    }
+    property.details.nodes = updatedNodes;
+    property.details.flag = value;
+}
+function initChild(self, node) {
     if (!!node.hasAttribute) {
         if (node.hasAttribute('id')) {
-            set[node.getAttribute('id')] = { type: 'html', node: node };
+            self.register(node.getAttribute('id'), { type: 'html', node: node });
         }
         if (node.hasAttribute('data-live-text')) {
             node
                 .getAttribute('data-live-text')
                 .split(';')
                 .forEach(function (attr) {
-                var _a = attr.split(':'), childIndex = _a[0], varName = _a[1];
-                set[varName] = { type: 'text', node: node.childNodes[+childIndex] };
+                var _a = attr.split('|'), childIndex = _a[0], varName = _a[1];
+                while (node.childNodes.length <= +childIndex) {
+                    node.appendChild(document.createTextNode(''));
+                }
+                self.register(varName, { type: 'text', node: node.childNodes[+childIndex] });
             });
         }
         if (node.hasAttribute('data-live-html')) {
@@ -257,34 +451,71 @@ function initChild(set, node, domParser) {
                 .getAttribute('data-live-html')
                 .split(';')
                 .forEach(function (attr) {
-                var _a = attr.split(':'), childIndex = _a[0], varName = _a[1];
-                set[varName] = { type: 'html', node: node.childNodes[+childIndex] };
+                var _a = attr.split('|'), childIndex = _a[0], varName = _a[1];
+                self.register(varName, { type: 'html', node: node.childNodes[+childIndex] });
             });
         }
         if (node.hasAttribute('data-live-map')) {
-            set[node.getAttribute('data-live-map')] = { type: 'attribute', node: node };
+            self.register(node.getAttribute('data-live-map'), { type: 'attribute', node: node });
         }
         if (node.hasAttribute('data-live-attr')) {
             node
                 .getAttribute('data-live-attr')
                 .split(';')
                 .forEach(function (attr) {
-                var _a = attr.split(':'), attrName = _a[0], varName = _a[1];
-                set[varName] = { type: 'attribute', node: node, attrName: attrName };
+                var _a = attr.split('|'), attrName = _a[0], varName = _a[1];
+                self.register(varName, { type: 'attribute', node: node, attrName: attrName });
+            });
+        }
+        if (node.hasAttribute('data-live-loop')) {
+            var nodes_1 = getSubroutineChildren(node, 'data-live-loop-child');
+            node
+                .getAttribute('data-live-loop')
+                .split(';')
+                .forEach(function (attr) {
+                var _a = attr.split('|'), startAt = _a[0], varName = _a[1], fnName = _a[2], stringValue = _a[3];
+                var fn = eval(fnName).bind({}, self, self.docElm, node);
+                self.register(varName, {
+                    type: 'loop',
+                    node: node,
+                    details: { startAt: +startAt, items: JSON.parse(stringValue), nodes: nodes_1[varName], fn: fn },
+                });
+            });
+        }
+        if (node.hasAttribute('data-live-if')) {
+            var nodes_2 = getSubroutineChildren(node, 'data-live-if-child');
+            node
+                .getAttribute('data-live-if')
+                .split(';')
+                .forEach(function (attr) {
+                var _a = attr.split('|'), startAt = _a[0], varName = _a[1], fnName = _a[2], flag = _a[3];
+                var fn = eval(fnName).bind({}, self, self.docElm, node);
+                self.register(varName, {
+                    type: 'conditional',
+                    node: node,
+                    details: { startAt: +startAt, flag: flag === 'true', nodes: nodes_2[varName], fn: fn },
+                });
             });
         }
     }
-    var children = node.childNodes;
-    for (var i = 0; i < children.length; i++) {
-        var child = children.item(i);
-        if (!!child.hasAttribute) {
-            if (!child.hasAttribute('data-live-root')) {
-                initChild(set, child, domParser);
+    Array.from(node.childNodes)
+        .filter(function (child) { return !!child.hasAttribute && !child.hasAttribute('data-live-root'); })
+        .forEach(function (child) { return initChild(self, child); });
+}
+function getSubroutineChildren(node, attribute) {
+    var output = {};
+    Array.from(node.childNodes).forEach(function (child) {
+        if (child.hasAttribute(attribute)) {
+            var _a = child.getAttribute(attribute).split('|'), key = _a[0], collection = _a[1];
+            if (!output[key]) {
+                output[key] = [];
             }
+            if (!output[key][+collection]) {
+                output[key][+collection] = [];
+            }
+            output[key][+collection].push(child);
         }
-    }
+    });
+    return output;
 }
 // feature _defineSet end
-function fixHTMLTags(xmlString) {
-    return xmlString.replace(/\<(?!area|base|br|col|command|embed|hr|img|input|keygen|link|meta|param|source|track|wbr)([a-z|A-Z|_|\-|:|0-9]+)([^>]*)\/\>/, '<$1$2></$1>');
-}

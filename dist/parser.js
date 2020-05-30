@@ -26,6 +26,7 @@ var NodeParser = /** @class */ (function () {
     function NodeParser(document) {
         var _this = this;
         this.output = [];
+        this.functions = [];
         this.rootNode = document;
         if (!document || !document.firstChild) {
             // not content at all
@@ -80,10 +81,10 @@ var NodeParser = /** @class */ (function () {
     NodeParser.prototype.parseProcessInstruction = function (node) {
         var tagName = node.target;
         if (tagName.indexOf('?') === 0) {
-            return new SubRoutine_1.default('if', tagName.substring(1));
+            return new SubRoutine_1.default('if', tagName.substring(1), node.nodeValue);
         }
         else if (tagName.match(/.+@.+/)) {
-            return new SubRoutine_1.default('loop', tagName);
+            return new SubRoutine_1.default('loop', tagName, node.nodeValue);
         }
         else if (['/@', '/?'].indexOf(tagName) > -1) {
             return null;
@@ -106,17 +107,19 @@ var NodeParser = /** @class */ (function () {
         return ["elm.appendChild(docElm.createProcessingInstruction('" + tagName + "','" + node.nodeValue + "'))"];
     };
     NodeParser.prototype._addSimpleNode = function (funcName, tagName, nodeValue, type) {
-        var nodeString = funcName + "(self._getValue(self.data, '" + tagName + "'))";
-        var updatableString = this._getAppendLivableString(nodeValue, type);
+        var nodeString = funcName + "(self._getValue(self.data, '" + tagName.replace(/#$/, '') + "'))";
+        var updatableString = this._getAppendLivableString(tagName, nodeValue, type);
         return "elm.appendChild((function () { const node = " + nodeString + "; " + updatableString + " return node; })());";
     };
-    NodeParser.prototype._getAppendLivableString = function (nodeValue, type) {
-        if (nodeValue.indexOf('#') === -1) {
-            return '';
+    NodeParser.prototype._getAppendLivableString = function (tagName, nodeValue, type) {
+        var varName = false;
+        if (tagName.charAt(tagName.length - 1) === '#') {
+            varName = tagName.substr(0, tagName.length - 1);
         }
-        else {
-            return "self.set['" + nodeValue.substr(1) + "'] = { node, type: '" + type + "' };";
+        else if (nodeValue.charAt(0) === '#') {
+            varName = nodeValue.substr(1);
         }
+        return varName ? "self.register('" + varName + "',{ node, type: '" + type + "' });" : '';
     };
     NodeParser.prototype.parseDocumentType = function (node) {
         return "self._setDocumentType('" + node.name + "','" + (node.publicId ? node.publicId : '') + "','" + (node.systemId ? node.systemId : '') + "')";
@@ -145,7 +148,7 @@ var NodeParser = /** @class */ (function () {
     };
     NodeParser.prototype.rememberForEasyAccess = function (attr, element) {
         if (attr.nodeName.toLowerCase() === 'id') {
-            element.push("self.set['" + attr.nodeValue + "'] = { node: elm, type: 'html' };");
+            element.push("self.register('" + attr.nodeValue + "', { node: elm, type: 'html' });");
         }
     };
     NodeParser.prototype.parseChildren = function (node) {
@@ -153,7 +156,7 @@ var NodeParser = /** @class */ (function () {
         var childNodes = Array.from(node.childNodes || []);
         var stack = [];
         var children = [];
-        // console.debug(`-- parsing ${node.tagName}: ${this._getChildrenDecription(childNodes)}`);
+        // console.debug(`-- parsing ${node.tagName}: ${this._getChildrenDescription(childNodes)}`);
         childNodes.forEach(function (childNode) {
             var parsed = _this.parseNode(childNode);
             if (parsed instanceof SubRoutine_1.default) {
@@ -165,10 +168,11 @@ var NodeParser = /** @class */ (function () {
             else if (parsed === null) {
                 var subRoutine = stack.pop();
                 if (!subRoutine) {
-                    throw Error("end of subRoutine without start: " + _this.getChildrenDecription(childNodes));
+                    throw Error("end of subRoutine without start: " + _this.getChildrenDescription(childNodes));
                 }
                 children = subRoutine.parent;
                 children.push(subRoutine.toString());
+                _this.functions.push(subRoutine.getFunction());
             }
             else if (Array.isArray(parsed)) {
                 children.push.apply(children, parsed);
@@ -179,7 +183,7 @@ var NodeParser = /** @class */ (function () {
         });
         return children;
     };
-    NodeParser.prototype.getChildrenDecription = function (children) {
+    NodeParser.prototype.getChildrenDescription = function (children) {
         return JSON.stringify(children.map(function (node) {
             switch (node.nodeType) {
                 case NodeType.Document:
@@ -223,7 +227,7 @@ var NodeParser = /** @class */ (function () {
     };
     NodeParser.prototype._getAttributeInstructions = function (attributes) {
         var _this = this;
-        var instructions = ['{ let node = self._getPreceedingOrSelf(elm), tmpAttrs;'];
+        var instructions = ['{ let node = self._getPrecedingOrSelf(elm), tmpAttrs;'];
         attributes.forEach(function (attrValue) {
             var _a = _this._parseAttrValue(attrValue), condition = _a.condition, attrName = _a.attrName, varName = _a.varName, liveId = _a.liveId;
             if (condition) {
@@ -232,16 +236,16 @@ var NodeParser = /** @class */ (function () {
             if (varName) {
                 instructions.push("node.setAttribute('" + attrName + "', self._getValue(self.data, '" + varName.replace(/[\'"]/g, "\\'") + "'));");
                 if (liveId) {
-                    instructions.push("self.set[" + liveId + "] = { node, type: 'attribute', 'attrName': '" + attrName + "'}");
+                    instructions.push("self.register(" + liveId + ", { node, type: 'attribute', 'attrName': '" + attrName + "'})");
                 }
             }
             else {
                 if (liveId) {
-                    instructions.push("self.set[" + liveId + "] = { node, type: 'attribute' }");
+                    instructions.push("self.register(" + liveId + ",{ node, type: 'attribute' })");
                 }
                 //no variable provided; setting attributeMap
                 var addToLiveList = liveId
-                    ? "self.set[`" + liveId + "#${k}`] = { node, type: 'attribute', 'attrName': k };"
+                    ? "self.register(`" + liveId + "#${k}`, { node, type: 'attribute', 'attrName': k });"
                     : '';
                 instructions.push("tmpAttrs = self._getValue(self.data, '" + attrName + "');");
                 instructions.push("for (let k in tmpAttrs) { node.setAttribute(k, tmpAttrs[k]);" + addToLiveList + " }");
@@ -261,7 +265,7 @@ var NodeParser = /** @class */ (function () {
     NodeParser.prototype._getCssInstructions = function (classes) {
         var _this = this;
         var instructions = [
-            "{ let tmpElm = self._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',\n\t\ttarget = tmpCss.length ? tmpCss.split(/s/) : [];",
+            "{ let tmpElm = self._getPrecedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',\n\t\ttarget = tmpCss.length ? tmpCss.split(/s/) : [];",
         ];
         classes.forEach(function (varValue) {
             var _a = _this._parseCssValue(varValue), condition = _a.condition, varName = _a.varName;
@@ -278,6 +282,9 @@ var NodeParser = /** @class */ (function () {
     };
     NodeParser.prototype.toString = function () {
         return this.output.join(';');
+    };
+    NodeParser.prototype.getFunctions = function () {
+        return this.functions.join('\n');
     };
     return NodeParser;
 }());

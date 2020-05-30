@@ -1,6 +1,7 @@
 export default class NodeParser {
     rootNode: Document;
     output: string[];
+    functions: string[];
     isSSR: false;
     constructor(document: Document);
     private parseDocument;
@@ -16,7 +17,7 @@ export default class NodeParser {
     private parseAttributes;
     private rememberForEasyAccess;
     private parseChildren;
-    private getChildrenDecription;
+    private getChildrenDescription;
     _parseAttrValue(value: string): {
         condition: string;
         attrName: string;
@@ -31,4 +32,5 @@ export default class NodeParser {
     };
     _getCssInstructions(classes: string[]): string[];
     toString(): string;
+    getFunctions(): string;
 }

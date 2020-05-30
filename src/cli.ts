@@ -16,7 +16,7 @@ const ts = args.indexOf('ts') > -1;
 const ssr = args.indexOf('ssr') > -1;
 
 entries.map((entry: Entry) => {
-	const targets = standarizeTargets(entry.target || [{ ts, ssr }], ts, ssr);
+	const targets = standardizeTargets(entry.target || [{ ts, ssr }], ts, ssr);
 
 	return toArray(entry.source).map((source: string) => {
 		return watch(source)
@@ -28,7 +28,7 @@ entries.map((entry: Entry) => {
 	});
 });
 
-function standarizeTargets(targets: string | string[] | TargetDef[], ts: boolean, ssr: boolean): TargetDef[] {
+function standardizeTargets(targets: string | string[] | TargetDef[], ts: boolean, ssr: boolean): TargetDef[] {
 	return toArray(targets).map((target: string | TargetDef) => {
 		return typeof target === 'string' ? { path: target, ts, ssr } : { ts, ssr, ...target };
 	});
@@ -38,7 +38,7 @@ function getTargets(targets: TargetDef[], sourcePath: string) {
 	return targets.map((target) => {
 		let path = replaceFileExtension(sourcePath, target.ts);
 		if (target.path !== undefined) {
-			path = (isTargetFolder(target.path))
+			path = isTargetFolder(target.path)
 				? [...target.path.split('/'), path.split('/').pop()].join('/').replace('//', '/')
 				: target.path;
 		}
@@ -47,10 +47,12 @@ function getTargets(targets: TargetDef[], sourcePath: string) {
 }
 
 // return true if path doesn't end with '/', is an existing folder or last element has no '.' in it
-function isTargetFolder(path:string) {
-	return path.charAt(path.length - 1) === '/' || 
-		(existsSync(path) && lstatSync(path).isDirectory()) || 
-		path.split('/').pop().indexOf('.') ===-1
+function isTargetFolder(path: string) {
+	return (
+		path.charAt(path.length - 1) === '/' ||
+		(existsSync(path) && lstatSync(path).isDirectory()) ||
+		path.split('/').pop().indexOf('.') === -1
+	);
 }
 
 function toArray(element: any) {
@@ -69,11 +71,7 @@ function remove(source: string, file: string, targets: TargetDef[]) {
 }
 
 function copy(file: string, targets: TargetDef[]) {
-	targets.forEach((target) =>
-		console.log(
-			copyFolderRecursiveSync(file, target)
-		)
-	);
+	targets.forEach((target) => console.log(copyFolderRecursiveSync(file, target)));
 }
 
 function replaceFileExtension(filename: string, toTypescript: boolean) {

@@ -18,6 +18,7 @@ const NodeType = {
 export default class NodeParser {
 	rootNode: Document;
 	output: string[] = [];
+	functions: string[] = [];
 	isSSR: false;
 
 	constructor(document: Document) {
@@ -83,9 +84,9 @@ export default class NodeParser {
 		const tagName = node.target;
 
 		if (tagName.indexOf('?') === 0) {
-			return new SubRoutine('if', tagName.substring(1));
+			return new SubRoutine('if', tagName.substring(1), node.nodeValue);
 		} else if (tagName.match(/.+@.+/)) {
-			return new SubRoutine('loop', tagName);
+			return new SubRoutine('loop', tagName, node.nodeValue);
 		} else if (['/@', '/?'].indexOf(tagName) > -1) {
 			return null;
 		} else if (tagName.indexOf('attr') === 0) {
@@ -104,18 +105,21 @@ export default class NodeParser {
 	}
 
 	private _addSimpleNode(funcName: string, tagName: string, nodeValue: string, type: 'html' | 'text'): string {
-		const nodeString = `${funcName}(self._getValue(self.data, '${tagName}'))`;
-		const updatableString = this._getAppendLivableString(nodeValue, type);
+		const nodeString = `${funcName}(self._getValue(self.data, '${tagName.replace(/#$/, '')}'))`;
+		const updatableString = this._getAppendLivableString(tagName, nodeValue, type);
 
 		return `elm.appendChild((function () { const node = ${nodeString}; ${updatableString} return node; })());`;
 	}
 
-	private _getAppendLivableString(nodeValue: string, type: string): string {
-		if (nodeValue.indexOf('#') === -1) {
-			return '';
-		} else {
-			return `self.set['${nodeValue.substr(1)}'] = { node, type: '${type}' };`;
+	private _getAppendLivableString(tagName: string, nodeValue: string, type: string): string {
+		let varName: string | false = false;
+		if (tagName.charAt(tagName.length - 1) === '#') {
+			varName = tagName.substr(0, tagName.length - 1);
+		} else if (nodeValue.charAt(0) === '#') {
+			varName = nodeValue.substr(1);
 		}
+
+		return varName ? `self.register('${varName}',{ node, type: '${type}' });` : '';
 	}
 
 	private parseDocumentType(node: DocumentType): string {
@@ -154,7 +158,7 @@ export default class NodeParser {
 
 	private rememberForEasyAccess(attr: Attr, element: string[]) {
 		if (attr.nodeName.toLowerCase() === 'id') {
-			element.push(`self.set['${attr.nodeValue}'] = { node: elm, type: 'html' };`);
+			element.push(`self.register('${attr.nodeValue}', { node: elm, type: 'html' });`);
 		}
 	}
 
@@ -163,7 +167,7 @@ export default class NodeParser {
 		const stack: SubRoutine[] = [];
 		let children: string[] = [] as string[];
 
-		// console.debug(`-- parsing ${node.tagName}: ${this._getChildrenDecription(childNodes)}`);
+		// console.debug(`-- parsing ${node.tagName}: ${this._getChildrenDescription(childNodes)}`);
 
 		childNodes.forEach((childNode: ChildNode) => {
 			const parsed = this.parseNode(childNode);
@@ -178,10 +182,11 @@ export default class NodeParser {
 				const subRoutine = stack.pop();
 
 				if (!subRoutine) {
-					throw Error(`end of subRoutine without start: ${this.getChildrenDecription(childNodes)}`);
+					throw Error(`end of subRoutine without start: ${this.getChildrenDescription(childNodes)}`);
 				}
 				children = subRoutine.parent;
 				children.push(subRoutine.toString());
+				this.functions.push(subRoutine.getFunction());
 			} else if (Array.isArray(parsed)) {
 				children.push(...parsed);
 			} else {
@@ -192,7 +197,7 @@ export default class NodeParser {
 		return children;
 	}
 
-	private getChildrenDecription(children: ChildNode[]): string {
+	private getChildrenDescription(children: ChildNode[]): string {
 		return JSON.stringify(
 			children.map((node) => {
 				switch (node.nodeType) {
@@ -239,7 +244,7 @@ export default class NodeParser {
 	}
 
 	_getAttributeInstructions(attributes: string[]) {
-		const instructions = ['{ let node = self._getPreceedingOrSelf(elm), tmpAttrs;'];
+		const instructions = ['{ let node = self._getPrecedingOrSelf(elm), tmpAttrs;'];
 
 		attributes.forEach((attrValue) => {
 			const { condition, attrName, varName, liveId } = this._parseAttrValue(attrValue);
@@ -253,15 +258,15 @@ export default class NodeParser {
 					`node.setAttribute('${attrName}', self._getValue(self.data, '${varName.replace(/[\'"]/g, "\\'")}'));`
 				);
 				if (liveId) {
-					instructions.push(`self.set[${liveId}] = { node, type: 'attribute', 'attrName': '${attrName}'}`);
+					instructions.push(`self.register(${liveId}, { node, type: 'attribute', 'attrName': '${attrName}'})`);
 				}
 			} else {
 				if (liveId) {
-					instructions.push(`self.set[${liveId}] = { node, type: 'attribute' }`);
+					instructions.push(`self.register(${liveId},{ node, type: 'attribute' })`);
 				}
 				//no variable provided; setting attributeMap
 				const addToLiveList = liveId
-					? `self.set[\`${liveId}#\${k}\`] = { node, type: 'attribute', 'attrName': k };`
+					? `self.register(\`${liveId}#\${k}\`, { node, type: 'attribute', 'attrName': k });`
 					: '';
 				instructions.push(`tmpAttrs = self._getValue(self.data, '${attrName}');`);
 				instructions.push(`for (let k in tmpAttrs) { node.setAttribute(k, tmpAttrs[k]);${addToLiveList} }`);
@@ -284,7 +289,7 @@ export default class NodeParser {
 
 	_getCssInstructions(classes: string[]) {
 		const instructions = [
-			`{ let tmpElm = self._getPreceedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',
+			`{ let tmpElm = self._getPrecedingOrSelf(elm), tmpCss = tmpElm.getAttribute('class') || '',
 		target = tmpCss.length ? tmpCss.split(/\s/) : [];`,
 		];
 
@@ -310,5 +315,9 @@ export default class NodeParser {
 
 	toString(): string {
 		return this.output.join(';');
+	}
+
+	getFunctions(): string {
+		return this.functions.join('\n');
 	}
 }
