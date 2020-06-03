@@ -1,73 +1,73 @@
 {
-	"_from": "html-encoder",
-	"_id": "html-encoder@0.2.0",
-	"_inBundle": false,
-	"_integrity": "sha512-BBKL+iTEqPXOJPRfzEYfUZskYLA7T8Danblk34Ahd1OGh01ZJrZKisl07xFvX9nnJJmQsEtN5R2fLtNXO1rHBg==",
-	"_location": "/html-encoder",
-	"_phantomChildren": {},
-	"_requested": {
-		"type": "tag",
-		"registry": true,
-		"raw": "html-encoder",
-		"name": "html-encoder",
-		"escapedName": "html-encoder",
-		"rawSpec": "",
-		"saveSpec": null,
-		"fetchSpec": "latest"
-	},
-	"_requiredBy": [
-		"#USER",
-		"/"
-	],
-	"_resolved": "https://registry.npmjs.org/html-encoder/-/html-encoder-0.2.0.tgz",
-	"_shasum": "8c4d8d78fdb2678ec00be6a15b9fe3056529c66a",
-	"_spec": "html-encoder",
-	"_where": "/Users/odedsharon/Documents/hills-lms",
-	"assets": [
-		{
-			"source": "src/JSNode.ts",
-			"target": "dist/JSNode.ts"
-		}
-	],
-	"author": {
-		"name": "odedshr@gmail.com"
-	},
-	"bugs": {
-		"url": "https://github.com/odedshr/html-encoder/issues"
-	},
-	"dependencies": {
-		"@types/node": "^13.9.5",
-		"@types/xmldom": "^0.1.29",
-		"chokidar": "^3.3.1",
-		"xmldom": "^0.1.31"
-	},
-	"deprecated": false,
-	"description": "a CLI for converting HTML to javascript code",
-	"devDependencies": {
-		"assert": "^2.0.0",
-		"assetomat": "^1.1.1",
-		"mocha": "^7.1.1",
-		"require-from-string": "^2.0.2",
-		"typescript": "^3.8.3",
-		"uglify-js": "^3.8.1"
-	},
-	"homepage": "https://github.com/odedshr/html-encoder#readme",
-	"license": "ISC",
-	"main": "./dist/index.js",
-	"types": "./dist/@types/index.ts.js",
-	"name": "html-encoder",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/odedshr/html-encoder.git"
-	},
-	"scripts": {
-		"build": "npm run copy & tsc",
-		"build:watch": "npm run copy:watch & tsc -w",
-		"copy": "node ./node_modules/assetomat/index.js once",
-		"copy:watch": "node ./node_modules/assetomat/index.js",
-		"pretest": "npm run build",
-		"test": "mocha tests/*.test.js",
-		"start": "node ./dist/cli.js"
-	},
-	"version": "0.9.0"
+  "_from": "html-encoder",
+  "_id": "html-encoder@0.2.0",
+  "_inBundle": false,
+  "_integrity": "sha512-BBKL+iTEqPXOJPRfzEYfUZskYLA7T8Danblk34Ahd1OGh01ZJrZKisl07xFvX9nnJJmQsEtN5R2fLtNXO1rHBg==",
+  "_location": "/html-encoder",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "html-encoder",
+    "name": "html-encoder",
+    "escapedName": "html-encoder",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/html-encoder/-/html-encoder-0.2.0.tgz",
+  "_shasum": "8c4d8d78fdb2678ec00be6a15b9fe3056529c66a",
+  "_spec": "html-encoder",
+  "_where": "/Users/odedsharon/Documents/hills-lms",
+  "assets": [
+    {
+      "source": "src/JSNode.ts",
+      "target": "dist/JSNode.ts"
+    }
+  ],
+  "author": {
+    "name": "odedshr@gmail.com"
+  },
+  "bugs": {
+    "url": "https://github.com/odedshr/html-encoder/issues"
+  },
+  "dependencies": {
+    "@types/node": "^14.0.9",
+    "@types/xmldom": "^0.1.29",
+    "chokidar": "^3.4.0",
+    "xmldom": "^0.3.0"
+  },
+  "deprecated": false,
+  "description": "a CLI for converting HTML to javascript code",
+  "devDependencies": {
+    "assert": "^2.0.0",
+    "assetomat": "^1.1.1",
+    "mocha": "^7.2.0",
+    "require-from-string": "^2.0.2",
+    "typescript": "^3.9.3",
+    "uglify-js": "^3.9.4"
+  },
+  "homepage": "https://github.com/odedshr/html-encoder#readme",
+  "license": "ISC",
+  "main": "./dist/index.js",
+  "types": "./dist/@types/index.ts.js",
+  "name": "html-encoder",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/odedshr/html-encoder.git"
+  },
+  "scripts": {
+    "build": "npm run copy & tsc",
+    "build:watch": "npm run copy:watch & tsc -w",
+    "copy": "node ./node_modules/assetomat/index.js once",
+    "copy:watch": "node ./node_modules/assetomat/index.js",
+    "pretest": "npm run build",
+    "test": "mocha tests/*.test.js",
+    "start": "node ./dist/cli.js"
+  },
+  "version": "0.9.0"
 }

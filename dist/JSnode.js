@@ -18,6 +18,7 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
     return r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.initNode = exports.getNode = void 0;
 // feature _SSR
 // _SSR()
 var xmldom_1 = require("xmldom");
