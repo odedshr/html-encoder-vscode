@@ -8,9 +8,7 @@
 
 ## Overview
 
-HTML-Encoder converts html files and excerpts to JS/TS code that can be used in either client-side or backend;
-
-The idea is to pre-compile the files so the process wouldn't happen on runtime. Additionally, HTML-Encoder provides a powerful reactivity with dead-simple access to attributes and elements to modify them directly with the need to render the entire DOM tree.
+HTML-Encoder receives HTML string and returns a JavaScript/TypeScript function (henceforth JSNode) that can output back the HTML string.You need this because browsers can't simply add HTMLElements to an existing page - they must be first parsed to JSNode and since HTML-Encoder does so once at compile-time, it improves the browser performance.Additionally, the returned JSNode gets a data object as input that the HTML code can retrieve (using valid HTML process-instructions), thus providing dynamic and reactive HTML code that can later be easily updated when the data changes.Since the JSNode can run on the server (as well as the browser), it can provide itself enough information that when picked up from the browser-side it still retains the reactivity.
 
 ## Installation
 
