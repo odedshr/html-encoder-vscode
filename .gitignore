@@ -61,3 +61,8 @@ typings/
 .next
 
 .TODO
+
+.tmp
+out
+.vscode-test/
+*.vsix

@@ -6,6 +6,8 @@ const { test } = require('./utils.js');
 describe('htmlEncoder: basic operations', () => {
 	it('converts static html', () => test('<div>Hello <b>World</b></div>', {}, '<div>Hello <b>World</b></div>'));
 
+	it('handles undefined data', () => test('<div>Hello <b>World</b></div>', undefined, '<div>Hello <b>World</b></div>'));
+
 	// In XML empty tags becomes single (e.g. <div></div> => <div/>),  but for majority of html tags it's considered
 	// illegal. The encoder will only "fix" the tags when it's considered legal.
 	it('handles empty elements properly', () =>

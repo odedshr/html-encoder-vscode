@@ -1,14 +1,25 @@
 {
-	"compilerOptions": {
-		"declaration": true,
-		"declarationDir": "./dist/@types",
-		"module": "CommonJS",
-		"noImplicitAny": true,
-		"outDir": "./dist",
-		"target": "es5"
-	},
-	"include": ["src/**/*"],
-	"exclude": ["node_modules"],
-	"strict": true /* Enable all strict type-checking options. */,
-	"esModuleInterop": true /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
+  "compilerOptions": {
+    "declaration": true,
+    "declarationDir": "./out/@types",
+    "module": "commonjs",
+    "target": "es6",
+    "outDir": "./out",
+    "lib": [
+      "es6",
+      "dom"
+    ],
+    "sourceMap": true,
+    "rootDir": "src",
+    "strict": true /* enable all strict type-checking options */
+    /* Additional Checks */
+    // "noImplicitReturns": true, /* Report error when not all code paths in function return a value. */
+    // "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
+    // "noUnusedParameters": true,  /* Report errors on unused parameters. */
+  },
+  "exclude": [
+    "node_modules",
+    ".vscode-test",
+    "out"
+  ]
 }

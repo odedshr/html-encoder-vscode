@@ -1,4 +1,4 @@
-# HTML Encoder
+# HTML Encoder extension for VS-code
 
 [![Build Status](https://travis-ci.org/odedshr/html-encoder.svg?branch=master)](https://travis-ci.org/odedshr/html-encoder)
 
@@ -6,89 +6,34 @@
 
 [![license](https://img.shields.io/badge/license-ISC-brightgreen.svg)](https://github.com/odedshr/html-encoder/blob/master/LICENSE)
 
-## Overview
+## The Main Gist
 
-HTML-Encoder receives HTML string and returns a JavaScript/TypeScript function (henceforth JSNode) that can output back the HTML string.You need this because browsers can't simply add HTMLElements to an existing page - they must be first parsed to JSNode and since HTML-Encoder does so once at compile-time, it improves the browser performance.Additionally, the returned JSNode gets a data object as input that the HTML code can retrieve (using valid HTML process-instructions), thus providing dynamic and reactive HTML code that can later be easily updated when the data changes.Since the JSNode can run on the server (as well as the browser), it can provide itself enough information that when picked up from the browser-side it still retains the reactivity.
+HTML-Encoder converts your template HTML file to a JavaScript/TypeScript function (henceforth JSNode) as soon as you save it.
+The file can then be embedded in either server-side or client-side code. It's pretty much like [JSX](https://reactjs.org/docs/introducing-jsx.html) or [Svelete](https://svelte.dev/) but without any special render command and while allowing you to write vanilla/Typescript code.
 
-## Installation
+### Getting it to work
 
-```bash
-npm install --save-dev html-encoder
-```
-
-## Running tests
-
-the tests can provide an excellent features list and expected behaviors:
-
-```bash
-npm test
-```
-
-## Usage
-
-1. Add 'html-encode' section in your `package.json`:
-
-   ```typescript
-   html-encode: {
-     source: string | string[];
-     target?: string | string[] | { path:string, ts?: boolean, ssr?: boolean }[]
-   }[];
-
-   ```
-
-   `html-encode` is an array of source-target couples, though if target is not provided the js/ts file will be created in the source folder.
-
-   `source` can be a single string or an array of strings; it can point to a specific file or use [`glob`](<https://en.wikipedia.org/wiki/Glob_(programming)>) pattern.
-
-   `target` can be a simple string - a single filename or a folder, a list of targets, or a list of targets with different spec per target - typescript or server-side-rendering (see below).
-   Unless specifying a target file the output will be the same filename as the source but with js/ts extension (`login.template.html` => `login.template.ts`)
-
-2. Run `node ./node_modules/html-encoder/dist/cli.js [options]`
-   Options (set default value that can be overridden per target):
-   - `ts` - Outputs a typescript file (default is `false`)
-   - `ssr` - Maps reactive elements for server-side-rendering (default is `false`)
-
-## Usage via code
-
-Import the library to your code and call the `htmlEncoder()` function:
-
-```typescript
-import  htmlEncoder = from 'html-encoder';
-
-const  output:string = htmlEncoder(html: string, isTypescript:boolean, ssr: boolean);
-```
-
-## Using the output file
-
-You may import HTML files in your javascript code this way:
+After enabling the extension, simply save a `[filename].template.html` file and the `filename.template.js` will pop up in the same folder.
+You can then easily embed by importing it to your code and appending the node to the DOM tree:
 
 ```javascript
-import Node from './popup.template';
+import { getNode } from 'login-screen.template.js';
 
-document.body.append(new Node());
+document.appendChild(getNode());
 ```
 
-### Usage in Node.JS
+### Different outputs
 
-By default, the output is meant is meant to run on the browser; however when compiled with `ssr = true` it will internally use [XMLDOM](https://www.npmjs.com/package/xmldom) library to access a `DOMParser`.
+Should you wish to save to a different destination, simply add the tag `<?out /path-to-new-target.ts ?>`.
+Target path can be relative to the source's path or absolute
+If the target extension is`ts` the output file will have Typescript notation.
+An optional parameter `ssr` will be explained later, but the format looks likes this `<?out:ssr target.ts ?>`
 
-```javascript
-import PageTemplate from './page.template';
-
-// or const Node = require('./page.template').default;
-
-return new PageTemplate();
-
-// or new PageTemplate().toString(); // to return the HTML string
-```
-
-It is technically possible to replace the dom-parser by manipulating the encoded output, please refer to the tests source code for an example.
-
-## Dynamic Content
+## Dynamic Content Support
 
 `HTML-encoder` supports dynamic content using [`XML-processing-instructions`](https://en.wikipedia.org/wiki/Processing_Instruction)
 
-and passing an object of data to the constructor (e.g. `new Node({data})`).
+and passing an object of data to the constructor (e.g. `getNode({divClass: 'highlighted', src: './portfolio.png' })`).
 
 These instructions are applied to their preceding sibling tag or parent if no preceding tag available. For example for the data
 
@@ -110,11 +55,11 @@ template.html:
 ```
 
 ```javascript
-import Node from './file.template';
+import { getNode } from './file.template';
 
-console.log(new Node({ parent: 'parent', sibling: 'sibling' }).toString);
+console.log(getNode({ parent: 'foo', sibling: 'bar' }).toString);
 
-// output: <div class="parent"><b class="sibling">Hello</b></div>
+// output: <div class="foo"><b class="bar">Hello</b></div>
 ```
 
 ### Content
@@ -175,14 +120,16 @@ ulTemplate:
 
 ```html
 <ul>
-  <?v@items?><?:liTemplate?><?/@?>
+  <?v@items?><?:LiTemplate?><?/@?>
 </ul>
 ```
 
 Javascript:
 
 ```javascript
-console.log(new UlTemplate({ items: ['a', 'b', 'c'], liTemplate }).toString());
+import { Node as LiTemplate } from './liTemplate';
+import { Node as UlTemplate } from './ulTemplate';
+console.log(new UlTemplate({ items: ['a', 'b', 'c'], LiTemplate }).toString());
 ```
 
 Output:
@@ -210,7 +157,7 @@ template.html:
 javascript:
 
 ```javascript
-const  node = new  Node();
+const  node = getNode();
 
 node.set.cta.addEventListener('click', ... );
 ```
@@ -238,7 +185,7 @@ template.html:
 javascript:
 
 ```javascript
-const node = new Node({ firstName: 'Adam' });
+const node = getNode({ firstName: 'Adam' });
 
 console.log(node.toString()); // output `<div>Hello Adam</div>`
 
@@ -283,28 +230,12 @@ console.log(node.set.name); // outputs 'hello
 
 In order to support [Server-Side-Rendering](https://medium.com/@baphemot/whats-server-side-rendering-and-do-i-need-it-cb42dc059b38) (SSR), we can leave enough cues that can later be picked up to reconstruct a new `node.set`
 
-By compiling `htmlEncode(htmlString, true, /*SSR = */ true)`, it will add additional attributes:
-
-1. Every template's root receives the attribute `data-live-root` to indicate it's a separate component (This is useful when having sub-templates).
-
-2. `<li><?=text #varName?></li>` => `<li data-live-text="0|varName"></li>` (added to the parent of the text node), note the 0 indicates the child's index.
-
-3. `<ul><?==html #foo?><?==html #bar?></ul>` => `<ul data-live-html="0|foo;1:bar"><li></li><li></li></ul>` (added to the parent of the text node), Note the 1 indicates the child's index.
-
-4. `<img><?attr attributeMap#? />` => `<img data-live-map="attributeMap" />`;
-
-5. `<img><?attr src#=url?></div>` => `<div data-live-attr="src:src"></div>`;
-
-6. `<img><?attr src#link=url alt#=text?></div>` => `<div data-live-attr="src:link;alt:alt"></div>`;
-
-7. `id` attribute (e.g. `<img id="avatar" />`) don't have translated reference but it is picked up by the init regardless.
-
-To reconnect all the references at the client side, import an `new MyTemplate({}, node)` using either:
+The output of `<?out:ssr ... ?>`, it will provide these additional cues that we can later reconnect using the `initNode` function:
 
 ```javascript
-import MyForm from './MyComponent.template';
+import { initNode } from './MyComponent.template';
 
-const myForm = new MyForm({}, document.getElementById('feedbackForm'));
+const myForm = initNode(document.getElementById('feedbackForm'));
 
 console.log(myForm.set.starCount); // should have the reference to the value;
 ```
@@ -373,7 +304,7 @@ would have been nice to do so natively but that's just wishful thinking) and thi
 
 1. Write a normal HTML file
 
-2. Import it to your javascript code using `import Node from './example.template';` and then use it by appending it to the DOM -`document.appendChild(new Node());`
+2. Import it to your javascript code using `import { getNode } from './example.template';` and then use it by appending it to the DOM -`document.appendChild(getNode());`
 
 ### The `<?...?>` tag
 
@@ -399,11 +330,3 @@ A guiding principle was to write an HTML valid code, but this raised the questio
    - `<?attr attrMap#?>` => `node.set.attrMap = { ...};`
    - `<?attr value#=data?>` => `node.set.value = "foo";`
    - `<?attr value#{varName}=data?> / { data: 2, varName: "key"}` => `node.set.key = 3;`
-
-## Future steps
-
-This project is mostly thought-experiment in creating a relatively clean internet code, well-encapsulated and easy to use.
-
-1. Ideally, I would have liked it to be a [Typescript](<[https://www.typescriptlang.org/](https://www.typescriptlang.org/)>) plugin and avoid the creation of the template.js files. Alternatively, I'm considering writing a [VSCode](<[https://code.visualstudio.com/](https://code.visualstudio.com/)>) extension that will automatically save the encoded versions of the file.
-2. It would be great to check its performance compared to other frameworks
-3. Next, I think it'll be time to create a real application and see whether it holds to its promise and allows easy development with no need to touch HTML code directly from the javascript.
