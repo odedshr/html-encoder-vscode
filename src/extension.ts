@@ -37,7 +37,7 @@ function findTargets(sourcePath: string, fullText: string): Target[] {
         const target = match[0].split(/\s+/);
         // target= "out[:ssr] filename ?"
         targets.push({
-          ts: target[1].match(/\.ts$/i) !== null,
+          ts: target[1].match(/\.ts\??$/i) !== null,
           path: normalize(getTargetPath(sourcePath, target[1].replace(/\?$/, ''))),
           ssr: !!target[2] && target[2].match(/\s?ssr/i) !== null,
         });
