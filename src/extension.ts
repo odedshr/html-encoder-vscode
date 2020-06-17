@@ -3,9 +3,9 @@
 import * as vscode from 'vscode';
 import { writeFileSync } from 'fs';
 import { normalize } from 'path';
-import htmlEncoder from './htmlEncoder';
+import htmlEncoder, { TargetType } from './htmlEncoder';
 
-type Target = { path: string; ts: boolean; ssr: boolean };
+type Target = { path: string; type: TargetType; ssr: boolean };
 const allTargetsPattern = /(\<\?out(\:ssr)?\s?(.*?)\s?\?\>)*$/gim;
 const targetPattern = /out(\:ssr)?\s? (.*?)\s?\?/gm;
 
@@ -20,7 +20,7 @@ export function registerHtmlEncoder(selector: vscode.DocumentSelector): vscode.D
       const source = getSourcePosition(document.uri.path);
       findTargets(document.uri.path, text).forEach(target => {
         vscode.window.showInformationMessage(` Encoded ${target.path.replace(source.folder, '.')}`);
-        writeFileSync(target.path, htmlEncoder(text.replace(allTargetsPattern, ''), target.ts, target.ssr));
+        writeFileSync(target.path, htmlEncoder(text.replace(allTargetsPattern, ''), target.type, target.ssr));
       });
 
       return [];
@@ -37,9 +37,9 @@ function findTargets(sourcePath: string, fullText: string): Target[] {
         const target = match[0].split(/\s+/);
         // target= "out[:ssr] filename ?"
         targets.push({
-          ts: target[1].match(/\.ts\??$/i) !== null,
-          path: normalize(getTargetPath(sourcePath, target[1].replace(/\?$/, ''))),
-          ssr: !!target[2] && target[2].match(/\s?ssr/i) !== null,
+          type: getTargetType(match[2]),
+          path: normalize(getTargetPath(sourcePath, target[1].replace(/\?$/, '').replace(/\.es$/i, '.js'))),
+          ssr: !!target[1] && target[1].match(/\s?ssr/i) !== null,
         });
       }
     });
@@ -51,13 +51,23 @@ function findTargets(sourcePath: string, fullText: string): Target[] {
   // return default target
   if (!targets.length) {
     targets.push({
-      ts: false,
+      type: 'js',
       ssr: false,
       path: `${sourcePath.replace(/\.html?$/, '')}.js`,
     });
   }
 
   return targets;
+}
+
+function getTargetType(filename: string = '') {
+  if (filename.match(/\.ts\??$/i) !== null) {
+    return 'ts';
+  } else if (filename.match(/\.es\??$/i) !== null) {
+    return 'es.js';
+  }
+
+  return 'js';
 }
 
 function getSourcePosition(source: string) {

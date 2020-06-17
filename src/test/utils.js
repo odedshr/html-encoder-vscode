@@ -12,7 +12,7 @@ function getOutputString(encodedNode, data) {
 
 // test() created a JS-based SSR-compatible node and compares it to the expected string
 function test(originalString, data = {}, expectedString, description, testFileName = undefined) {
-  const encodedNode = htmlEncoder(originalString, false, true);
+  const encodedNode = htmlEncoder(originalString, 'js', true);
   try {
     if (testFileName) {
       writeFileSync(`${testFileName}.log.js`, encodedNode);
@@ -41,7 +41,7 @@ function getNode(htmlString, data, testFileName = undefined) {
 
 // getSSRNode() creates a JS-based SSR-compatible node but then use it as a base for browser-compatible node to return
 function getSSRNode(htmlString, data, testFileName = undefined) {
-  const SSREncoded = htmlEncoder(htmlString, false, true);
+  const SSREncoded = htmlEncoder(htmlString, 'js', true);
   const getNode = requireFromString(SSREncoded).getNode;
   const node = getNode(data);
 

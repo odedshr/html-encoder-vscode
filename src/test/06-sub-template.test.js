@@ -3,7 +3,7 @@ const requireFromString = require('require-from-string');
 const htmlEncoder = require('../../out/htmlEncoder').default;
 
 function getTemplate(htmlString) {
-  return requireFromString(htmlEncoder(htmlString, false, true)).default;
+  return requireFromString(htmlEncoder(htmlString, 'js', true)).default;
 }
 
 describe('htmlEncoder: sub-templates', () => {

@@ -2,7 +2,7 @@ import * as assert from 'assert';
 
 import * as vscode from 'vscode';
 import { normalize } from 'path';
-import { existsSync, readdirSync } from 'fs';
+import { existsSync, readdirSync, readFileSync } from 'fs';
 import { addFolder, removeFolder, saveFile } from './utils';
 // import * as myExtension from '../../extension';
 
@@ -17,7 +17,6 @@ suite('Extension Test Suite', async () => {
 		await saveFile(normalize(`${uniqueFolder}/index.html`), 'hello world', '!');
 		const files = readdirSync(uniqueFolder);
 
-		console.log(files.length);
 		assert.equal(files.length, 1);
 		assert.equal(files[0], 'index.html');
 		removeFolder(uniqueFolder);
@@ -92,5 +91,17 @@ suite('Extension Test Suite', async () => {
 		const node = initNode(ssrNode);
 		assert.ok(node.set.name, 'world');
 		removeFolder(tempFolder);
+	});
+
+	test('es file', async () => {
+		addFolder(tempFolder);
+		const filename = normalize(`${tempFolder}/testFile8.template.html`);
+		const outputFile = normalize(`${tempFolder}/es-test.js`);
+		await saveFile(filename, '<div>Hello <?=name#?></div>', '<?out es-test.es?>');
+
+		assert.ok(existsSync(outputFile), `js file exists ${outputFile}`);
+		const fileContent = readFileSync(outputFile);
+		assert.ok(fileContent.indexOf('export default class JSNode') > -1);
+		// removeFolder(tempFolder);
 	});
 });

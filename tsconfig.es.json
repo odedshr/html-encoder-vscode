@@ -2,7 +2,7 @@
   "compilerOptions": {
     "declaration": true,
     "declarationDir": "./out/@types",
-    "module": "CommonJS",
+    "module": "ESNext",
     "target": "es6",
     "outDir": "./out",
     "lib": [
@@ -18,10 +18,7 @@
     // "noFallthroughCasesInSwitch": true, /* Report errors for fallthrough cases in switch statement. */
     // "noUnusedParameters": true,  /* Report errors on unused parameters. */
   },
-  "exclude": [
-    "node_modules",
-    ".vscode-test",
-    "out",
+  "files": [
     "src/JSNode.es.ts"
   ]
 }

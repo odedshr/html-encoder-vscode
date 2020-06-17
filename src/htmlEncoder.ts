@@ -5,17 +5,19 @@ import NodeParser from './parser';
 const domParser = new DOMParser();
 const encoding = 'utf-8';
 
-export default function htmlEncoder(html: string, isTypescript = false, isSSR = false) {
+export type TargetType = 'js' | 'es.js' | 'ts';
+
+export default function htmlEncoder(html: string, type: TargetType = 'js', isSSR = false) {
   const document: Document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
 
-  return treeShake(transpile(new NodeParser(document), isTypescript, isSSR));
+  return treeShake(transpile(new NodeParser(document), type, isSSR));
 }
 
-function getTemplateFile(isTypescript: boolean) {
-  return `${__dirname}/JSNode.${isTypescript ? 'ts' : 'js'}`;
+function getTemplateFile(type: TargetType) {
+  return `${__dirname}/JSNode.${type}`;
 }
 
-function transpile(parser: NodeParser, isTypescript: boolean, isSSR: boolean) {
+function transpile(parser: NodeParser, type: TargetType, isSSR: boolean) {
   let parsedString = parser.toString();
 
   if (isSSR) {
@@ -27,7 +29,7 @@ function transpile(parser: NodeParser, isTypescript: boolean, isSSR: boolean) {
     parsedString += `;self._defineSet(${isSSR});`;
   }
 
-  return readFileSync(getTemplateFile(isTypescript), { encoding })
+  return readFileSync(getTemplateFile(type), { encoding })
     .replace(/console\.log\(self, docElm\)[;,]/, `this.node = ${parsedString};`)
     .replace(/\/\/ functions go here/, parser.getFunctions());
 }

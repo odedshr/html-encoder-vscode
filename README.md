@@ -26,8 +26,10 @@ document.appendChild(getNode());
 
 Should you wish to save to a different destination, simply add the tag `<?out /path-to-new-target.ts ?>`.
 Target path can be relative to the source's path or absolute
-If the target extension is`ts` the output file will have Typescript notation.
-An optional parameter `ssr` will be explained later, but the format looks likes this `<?out:ssr target.ts ?>`
+
+- If the target extension is `ts` the output file will have Typescript notation.
+- The standard output is [commonJS](https://medium.com/@cgcrutch18/commonjs-what-why-and-how-64ed9f31aa46#:~:text=CommonJS%20is%20a%20module%20formatting,heavily%20influenced%20NodeJS's%20module%20management.)-compliant; Should you wish to have a [ESNext](https://www.javascripttutorial.net/es-next/) compliant change your target suffix to `es` (e.g. `<?out *.es?>`).
+- An optional parameter `ssr` will be explained later, but the format looks likes this `<?out:ssr target.ts ?>`
 
 ## Dynamic Content Support
 

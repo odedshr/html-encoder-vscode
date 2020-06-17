@@ -2,13 +2,15 @@
   "name": "html-encoder",
   "displayName": "HTML Encoder",
   "description": "Encode your HTML templates to Javascript or TypeScript instructions",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "scripts": {
     "vscode:prepublish": "npm run build",
-    "build": "npm run copy & tsc",
-    "build:watch": "npm run copy:watch & tsc -w",
+    "build": "npm run copy & tsc & npm run build:es",
+    "build:watch": "npm run copy:watch & npm run build:es:watch & tsc -w",
     "copy": "node ./node_modules/assetomat/index.js once",
     "copy:watch": "node ./node_modules/assetomat/index.js",
+    "build:es": "tsc -p ./tsconfig.es.json",
+    "build:es:watch": "tsc -w -p ./tsconfig.es.json",
     "pretest": "npm run build",
     "test": "mocha src/test/*.test.js",
     "test:extension": "node ./out/test/runTest.js",
@@ -40,7 +42,10 @@
   "assets": [
     {
       "source": "src/JSNode.ts",
-      "target": "out/JSNode.ts"
+      "target": [
+        "out/JSNode.ts",
+        "src/JSNode.es.ts"
+      ]
     }
   ],
   "engines": {

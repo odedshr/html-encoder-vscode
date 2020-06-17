@@ -1,9 +1,9 @@
 import { basename, join } from 'path';
 import { existsSync, readFileSync, writeFileSync, lstatSync, mkdirSync, readdirSync, rmdirSync, unlinkSync } from 'fs';
 import { watch } from 'chokidar';
-import htmlEncoder from './htmlEncoder';
+import htmlEncoder, { TargetType } from './htmlEncoder';
 
-type TargetDef = { path?: string; ts?: boolean; ssr?: boolean };
+type TargetDef = { path?: string; type?: TargetType; ssr?: boolean };
 type Entry = {
   source: string | string[];
   target?: string | string[] | TargetDef[];
@@ -12,11 +12,20 @@ type Entry = {
 const packageJSON = JSON.parse(readFileSync(`${process.cwd()}/package.json`, 'utf-8'));
 const entries = packageJSON['html-encode'] || [];
 const args = process.argv;
-const ts = args.indexOf('ts') > -1;
+const type = getTargetTypeFromArgs();
 const ssr = args.indexOf('ssr') > -1;
 
+function getTargetTypeFromArgs() {
+  if (args.indexOf('ts') > -1) {
+    return 'ts';
+  } else if (args.indexOf('es') > -1) {
+    return 'es.js';
+  }
+
+  return 'js';
+}
 entries.map((entry: Entry) => {
-  const targets = standardizeTargets(entry.target || [{ ts, ssr }], ts, ssr);
+  const targets = standardizeTargets(entry.target || [{ type, ssr }], type, ssr);
 
   return toArray(entry.source).map((source: string) => {
     return watch(source)
@@ -28,21 +37,21 @@ entries.map((entry: Entry) => {
   });
 });
 
-function standardizeTargets(targets: string | string[] | TargetDef[], ts: boolean, ssr: boolean): TargetDef[] {
+function standardizeTargets(targets: string | string[] | TargetDef[], type: TargetType, ssr: boolean): TargetDef[] {
   return toArray(targets).map((target: string | TargetDef) => {
-    return typeof target === 'string' ? { path: target, ts, ssr } : { ts, ssr, ...target };
+    return typeof target === 'string' ? { path: target, type, ssr } : { type, ssr, ...target };
   });
 }
 
 function getTargets(targets: TargetDef[], sourcePath: string) {
   return targets.map((target) => {
-    let path = replaceFileExtension(sourcePath, target.ts || false);
+    let path = replaceFileExtension(sourcePath, target.type || 'js');
     if (target.path !== undefined) {
       path = isTargetFolder(target.path)
         ? [...target.path.split('/'), path.split('/').pop()].join('/').replace('//', '/')
         : target.path;
     }
-    return { path, ts: target.ts, ssr: target.ssr };
+    return { path, type: target.type, ssr: target.ssr };
   });
 }
 
@@ -66,7 +75,7 @@ function getTargetPath(source: string, file: string, target: string) {
 
 function remove(source: string, file: string, targets: TargetDef[]) {
   targets.forEach((target) =>
-    removeFileSync(getTargetPath(source, replaceFileExtension(file, target.ts || false), target.path || ''))
+    removeFileSync(getTargetPath(source, replaceFileExtension(file, target.type || 'js'), target.path || ''))
   );
 }
 
@@ -74,8 +83,8 @@ function copy(file: string, targets: TargetDef[]) {
   targets.forEach((target) => console.log(copyFolderRecursiveSync(file, target)));
 }
 
-function replaceFileExtension(filename: string, toTypescript: boolean) {
-  return filename.replace(/.[^.]{1,10}$/, `.${toTypescript ? 'ts' : 'js'}`);
+function replaceFileExtension(filename: string, type: TargetType) {
+  return filename.replace(/.[^.]{1,10}$/, `.${type}`);
 }
 
 function copyFileSync(source: string, target: TargetDef) {
@@ -88,7 +97,7 @@ function copyFileSync(source: string, target: TargetDef) {
   //if target is a directory a new file with the same name will be created
   if (existsSync(targetFile)) {
     if (lstatSync(targetFile).isDirectory()) {
-      targetFile = replaceFileExtension(join(targetFile, basename(source)), target.ts || false);
+      targetFile = replaceFileExtension(join(targetFile, basename(source)), target.type || 'js');
     }
   } else {
     targetFile
@@ -100,7 +109,7 @@ function copyFileSync(source: string, target: TargetDef) {
         return `${memo}/`;
       }, '');
   }
-  writeFileSync(targetFile, htmlEncoder(readFileSync(source, { encoding: 'utf-8' }), target.ts, target.ssr));
+  writeFileSync(targetFile, htmlEncoder(readFileSync(source, { encoding: 'utf-8' }), target.type, target.ssr));
 }
 
 function verifyFolderExists(folder: string) {
