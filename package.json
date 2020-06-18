@@ -2,7 +2,7 @@
   "name": "html-encoder",
   "displayName": "HTML Encoder",
   "description": "Encode your HTML templates to Javascript or TypeScript instructions",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "npm run copy & tsc & npm run build:es",
