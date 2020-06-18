@@ -19,12 +19,12 @@ import { DOMParser } from 'xmldom';
 const window = { DOMParser: DOMParser };
 // feature _SSR end
 
-export function getNode(data: { [key: string]: any } = {}) {
-  return new JSNode(data);
+export function getNode(data: { [key: string]: any } = {}): Node {
+  return <Node><unknown>new JSNode(data);
 }
 
-export function initNode(existingNode: ChildNode) {
-  return new JSNode({}, existingNode);
+export function initNode(existingNode: ChildNode): Node {
+  return <Node><unknown>new JSNode({}, existingNode);
 }
 
 export default class JSNode {
@@ -176,8 +176,8 @@ export default class JSNode {
     return path[0] === '!'
       ? !this._getValue(data, path.substr(1))
       : path.split('.').reduce(function (ptr: KeyedObject, step: string) {
-          return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
-        }, data);
+        return ptr && ptr.hasOwnProperty(step) ? ptr[step] : undefined;
+      }, data);
   }
   // feature _getValue end
 
@@ -246,6 +246,75 @@ function getAddedChildren(parent: Node, fn: () => void): ChildNode[] {
 }
 // feature getAddedChildren end
 
+function initChild(self: JSNode, node: Element) {
+  if (!!node.hasAttribute) {
+    const nodeId = node.getAttribute('id');
+    nodeId && self.register(nodeId, { type: 'html', node });
+
+    const dataLiveText = node.getAttribute('data-live-text');
+    dataLiveText &&
+      dataLiveText.split(';').forEach((attr) => {
+        const [childIndex, varName] = attr.split('|');
+        while (node.childNodes.length <= +childIndex) {
+          node.appendChild(document.createTextNode(''));
+        }
+        self.register(varName, { type: 'text', node: <Element>node.childNodes[+childIndex] });
+      });
+
+    const dataLiveHtml = node.getAttribute('data-live-html');
+    dataLiveHtml &&
+      dataLiveHtml.split(';').forEach((attr) => {
+        const [childIndex, varName] = attr.split('|');
+        self.register(varName, { type: 'html', node: <Element>node.childNodes[+childIndex] });
+      });
+
+    const dataLiveMap = node.getAttribute('data-live-map');
+    dataLiveMap && self.register(dataLiveMap, { type: 'attribute', node });
+
+    const dataLiveAttr = node.getAttribute('data-live-attr');
+    dataLiveAttr &&
+      dataLiveAttr.split(';').forEach((attr) => {
+        const [attrName, varName] = attr.split('|');
+        self.register(varName, { type: 'attribute', node, attrName });
+      });
+
+    if (node.hasAttribute('data-live-loop')) {
+      const nodes = getSubroutineChildren(node, 'data-live-loop-child');
+      const dataLiveLoop = node.getAttribute('data-live-loop');
+      dataLiveLoop &&
+        dataLiveLoop.split(';').forEach((attr) => {
+          const [startAt, varName, fnName, stringValue] = attr.split('|');
+          const fn = eval(fnName).bind({}, self, self.docElm, node);
+          self.register(varName, {
+            type: 'loop',
+            node,
+            details: { startAt: +startAt, items: JSON.parse(stringValue), nodes: nodes[varName], fn },
+          });
+        });
+    }
+
+    const dataLiveIf = node.getAttribute('data-live-if');
+    if (dataLiveIf) {
+      const nodes = getSubroutineChildren(node, 'data-live-if-child');
+      dataLiveIf.split(';').forEach((attr) => {
+        const [startAt, varName, fnName, flag] = attr.split('|');
+        const fn = eval(fnName).bind({}, self, self.docElm, node);
+        self.register(varName, {
+          type: 'conditional',
+          node,
+          details: { startAt: +startAt, flag: flag === 'true', nodes: nodes[varName], fn },
+        });
+      });
+    }
+  }
+
+  Array.from(node.childNodes)
+    .filter(
+      (child: ChildNode) => !!(<HTMLElement>child).hasAttribute && !(<HTMLElement>child).hasAttribute('data-live-root')
+    )
+    .forEach((child: ChildNode) => initChild(self, <HTMLElement>child));
+}
+
 // feature _defineSet
 function addServerReactiveFunctionality(set: { [key: string]: Property[] } = {}) {
   for (let key in set) {
@@ -284,7 +353,7 @@ function addServerReactiveFunctionality(set: { [key: string]: Property[] } = {})
           break;
         case 'conditional':
           if (property.details) {
-            const { fn = () => {}, startAt, flag, nodes = [] } = property.details;
+            const { fn = () => { }, startAt, flag, nodes = [] } = property.details;
             appendAttribute(node, 'data-live-if', `${startAt}|${key}|${fn.name.replace(/bound /, '')}|${flag}`);
             nodes.forEach((collection, i) =>
               collection.forEach((item) => appendAttribute(<HTMLElement>item, 'data-live-if-child', `${key}|${i}`))
@@ -476,75 +545,8 @@ function updateConditional(property: Property, value: boolean) {
   }
 }
 
-function initChild(self: JSNode, node: Element) {
-  if (!!node.hasAttribute) {
-    const nodeId = node.getAttribute('id');
-    nodeId && self.register(nodeId, { type: 'html', node });
-
-    const dataLiveText = node.getAttribute('data-live-text');
-    dataLiveText &&
-      dataLiveText.split(';').forEach((attr) => {
-        const [childIndex, varName] = attr.split('|');
-        while (node.childNodes.length <= +childIndex) {
-          node.appendChild(document.createTextNode(''));
-        }
-        self.register(varName, { type: 'text', node: <Element>node.childNodes[+childIndex] });
-      });
-
-    const dataLiveHtml = node.getAttribute('data-live-html');
-    dataLiveHtml &&
-      dataLiveHtml.split(';').forEach((attr) => {
-        const [childIndex, varName] = attr.split('|');
-        self.register(varName, { type: 'html', node: <Element>node.childNodes[+childIndex] });
-      });
-
-    const dataLiveMap = node.getAttribute('data-live-map');
-    dataLiveMap && self.register(dataLiveMap, { type: 'attribute', node });
-
-    const dataLiveAttr = node.getAttribute('data-live-attr');
-    dataLiveAttr &&
-      dataLiveAttr.split(';').forEach((attr) => {
-        const [attrName, varName] = attr.split('|');
-        self.register(varName, { type: 'attribute', node, attrName });
-      });
-
-    if (node.hasAttribute('data-live-loop')) {
-      const nodes = getSubroutineChildren(node, 'data-live-loop-child');
-      const dataLiveLoop = node.getAttribute('data-live-loop');
-      dataLiveLoop &&
-        dataLiveLoop.split(';').forEach((attr) => {
-          const [startAt, varName, fnName, stringValue] = attr.split('|');
-          const fn = eval(fnName).bind({}, self, self.docElm, node);
-          self.register(varName, {
-            type: 'loop',
-            node,
-            details: { startAt: +startAt, items: JSON.parse(stringValue), nodes: nodes[varName], fn },
-          });
-        });
-    }
-
-    const dataLiveIf = node.getAttribute('data-live-if');
-    if (dataLiveIf) {
-      const nodes = getSubroutineChildren(node, 'data-live-if-child');
-      dataLiveIf.split(';').forEach((attr) => {
-        const [startAt, varName, fnName, flag] = attr.split('|');
-        const fn = eval(fnName).bind({}, self, self.docElm, node);
-        self.register(varName, {
-          type: 'conditional',
-          node,
-          details: { startAt: +startAt, flag: flag === 'true', nodes: nodes[varName], fn },
-        });
-      });
-    }
-  }
-
-  Array.from(node.childNodes)
-    .filter(
-      (child: ChildNode) => !!(<HTMLElement>child).hasAttribute && !(<HTMLElement>child).hasAttribute('data-live-root')
-    )
-    .forEach((child: ChildNode) => initChild(self, <HTMLElement>child));
-}
-
+// feature _defineSet end
+// feature getSubroutineChildren
 function getSubroutineChildren(node: ChildNode, attribute: string): { [key: string]: ChildNode[][] } {
   const output: { [key: string]: ChildNode[][] } = {};
   Array.from(node.childNodes).forEach((child: ChildNode) => {
@@ -561,4 +563,4 @@ function getSubroutineChildren(node: ChildNode, attribute: string): { [key: stri
   });
   return output;
 }
-// feature _defineSet end
+// feature getSubroutineChildren end

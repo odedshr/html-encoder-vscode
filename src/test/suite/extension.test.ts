@@ -102,6 +102,6 @@ suite('Extension Test Suite', async () => {
 		assert.ok(existsSync(outputFile), `js file exists ${outputFile}`);
 		const fileContent = readFileSync(outputFile);
 		assert.ok(fileContent.indexOf('export default class JSNode') > -1);
-		// removeFolder(tempFolder);
+		removeFolder(tempFolder);
 	});
 });

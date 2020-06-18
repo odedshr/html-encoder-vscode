@@ -2,7 +2,7 @@
   "name": "html-encoder",
   "displayName": "HTML Encoder",
   "description": "Encode your HTML templates to Javascript or TypeScript instructions",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "npm run copy & tsc & npm run build:es",
@@ -13,8 +13,7 @@
     "build:es:watch": "tsc -w -p ./tsconfig.es.json",
     "pretest": "npm run build",
     "test": "mocha src/test/*.test.js",
-    "test:extension": "node ./out/test/runTest.js",
-    "start": "node ./out/cli.js"
+    "test:extension": "node ./out/test/runTest.js"
   },
   "categories": [
     "Programming Languages",
@@ -22,7 +21,7 @@
   ],
   "icon": "images/icon.png",
   "galleryBanner": {
-    "color": "#DCF5FD",
+    "color": "#ecc469",
     "theme": "light"
   },
   "publisher": "odedshr",
@@ -43,7 +42,7 @@
     {
       "source": "src/JSNode.ts",
       "target": [
-        "out/JSNode.ts",
+        "out/JSNode.template-ts",
         "src/JSNode.es.ts"
       ]
     }

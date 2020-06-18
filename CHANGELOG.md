@@ -27,3 +27,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - support for typescript
+
+## [1.0.2] - 2020-06-18
+
+### Changed
+
+- Updated the icon
+
+### Removed
+
+- CLI Support
+
+### Fixed
+
+- support for typescript (realized `.vscodeignore` prevents packing ts files)
+- getNode() now returns Node instead of the obscure JSNode

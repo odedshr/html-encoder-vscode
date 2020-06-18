@@ -19,8 +19,14 @@ export function registerHtmlEncoder(selector: vscode.DocumentSelector): vscode.D
       let text: string = document.getText();
       const source = getSourcePosition(document.uri.path);
       findTargets(document.uri.path, text).forEach(target => {
-        vscode.window.showInformationMessage(` Encoded ${target.path.replace(source.folder, '.')}`);
-        writeFileSync(target.path, htmlEncoder(text.replace(allTargetsPattern, ''), target.type, target.ssr));
+        try {
+          writeFileSync(target.path, htmlEncoder(text.replace(allTargetsPattern, ''), target.type, target.ssr));
+          vscode.window.showInformationMessage(` Encoded ${target.path.replace(source.folder, '.')}`);
+        }
+        catch (err) {
+          console.error(target.path, err);
+          vscode.window.showInformationMessage(` Failed encoding ${target.path.replace(source.folder, '.')}: ${err}`);
+        }
       });
 
       return [];
@@ -60,11 +66,11 @@ function findTargets(sourcePath: string, fullText: string): Target[] {
   return targets;
 }
 
-function getTargetType(filename: string = '') {
+function getTargetType(filename: string = ''): TargetType {
   if (filename.match(/\.ts\??$/i) !== null) {
     return 'ts';
   } else if (filename.match(/\.es\??$/i) !== null) {
-    return 'es.js';
+    return 'es';
   }
 
   return 'js';

@@ -5,7 +5,7 @@ import NodeParser from './parser';
 const domParser = new DOMParser();
 const encoding = 'utf-8';
 
-export type TargetType = 'js' | 'es.js' | 'ts';
+export type TargetType = 'js' | 'es' | 'ts';
 
 export default function htmlEncoder(html: string, type: TargetType = 'js', isSSR = false) {
   const document: Document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
@@ -14,7 +14,14 @@ export default function htmlEncoder(html: string, type: TargetType = 'js', isSSR
 }
 
 function getTemplateFile(type: TargetType) {
-  return `${__dirname}/JSNode.${type}`;
+  switch (type) {
+    case 'ts':
+      return `${__dirname}/JSNode.template-ts`;
+    case 'es':
+      return `${__dirname}/JSNode.es.js`;
+    default:
+      return `${__dirname}/JSNode.js`;
+  }
 }
 
 function transpile(parser: NodeParser, type: TargetType, isSSR: boolean) {
