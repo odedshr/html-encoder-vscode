@@ -22,7 +22,7 @@ describe('htmlEncoder: real-time-sub-routines', () => {
 		assert.equal(JSON.stringify(node.set.value), '["c","d","b"]');
 	});
 
-	it('supports multiple live loops', () => {
+	it('supports multiple ssr loops', () => {
 		const node = getSSRNode('<ul><?v@letters #letters?><li><?=v?></li><?/@?><?v@numbers#?><li><?=v?></li><?/@?></ul>', {
 			letters: ['a', 'b', 'c'],
 			numbers: ['1', '2', '3'],

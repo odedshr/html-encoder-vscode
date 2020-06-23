@@ -5,8 +5,7 @@ describe('htmlEncoder: loops', () => {
     test(
       '<ul><?v@items?><li><?=v?></li><?/@?></ul>',
       { items: ['a', 'b', 'c'] },
-      '<ul><li>a</li><li>b</li><li>c</li></ul>',
-      ''
+      '<ul><li>a</li><li>b</li><li>c</li></ul>'
     ));
 
   it('supports <?value:key@array?></?@?>', () =>

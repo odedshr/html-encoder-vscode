@@ -19,14 +19,15 @@ export default class NodeParser {
   rootNode: Document;
   output: string[] = [];
   functions: string[] = [];
-  isSSR = false;
+  isTypescript: boolean;
 
-  constructor(document: Document) {
+  constructor(document: Document, isTypescript: boolean) {
     this.rootNode = document;
+    this.isTypescript = isTypescript;
 
     if (!document || !document.firstChild) {
       // not content at all
-      this.output.push(`docElm.createDocumentFragment()`);
+      this.output.push(`docElm.createDocumentFragment();`);
     } else {
       const children: ChildNode[] = Array.from(document.childNodes);
       const docType: ChildNode | false | undefined =
@@ -34,8 +35,8 @@ export default class NodeParser {
       if (children.length > 1) {
         this.output.push(
           this.wrapAndReturnELM([
-            `const elm = docElm.createDocumentFragment()`,
-            ...children.map((node) => `elm.appendChild(${this.parseDocument(node)})`),
+            `const elm = docElm.createDocumentFragment();`,
+            ...children.map((node) => `elm.appendChild(${this.parseDocument(node)});`),
           ])
         );
       } else {
@@ -86,9 +87,9 @@ export default class NodeParser {
     const tagName = node.target;
     const nodeValue = node.nodeValue || '';
     if (tagName.indexOf('?') === 0) {
-      return new SubRoutine('if', tagName.substring(1), nodeValue);
+      return new SubRoutine('if', tagName.substring(1), this.isTypescript, nodeValue);
     } else if (tagName.match(/.+@.+/)) {
-      return new SubRoutine('loop', tagName, nodeValue);
+      return new SubRoutine('loop', tagName, this.isTypescript, nodeValue);
     } else if (['/@', '/?'].indexOf(tagName) > -1) {
       return new SubRoutineEnd();
     } else if (tagName.indexOf('attr') === 0) {
@@ -96,14 +97,14 @@ export default class NodeParser {
     } else if (tagName.indexOf('css') === 0) {
       return this._getCssInstructions(nodeValue.split(/\s/));
     } else if (tagName.indexOf(':') === 0) {
-      return [`elm.appendChild(self._getSubTemplate('${tagName.substr(1)}'))`];
+      return [`elm.appendChild(self._getSubTemplate('${tagName.substr(1)}'));`];
     } else if (tagName.indexOf('==') === 0) {
       return [this._addSimpleNode('self._getHTMLNode', tagName.substr(2), nodeValue, 'html')];
     } else if (tagName.indexOf('=') === 0) {
       return [this._addSimpleNode('docElm.createTextNode', tagName.substr(1), nodeValue, 'text')];
     }
 
-    return [`elm.appendChild(docElm.createProcessingInstruction('${tagName}','${nodeValue}'))`];
+    return [`elm.appendChild(docElm.createProcessingInstruction('${tagName}','${nodeValue}'));`];
   }
 
   private _addSimpleNode(funcName: string, tagName: string, nodeValue: string, type: 'html' | 'text'): string {
@@ -127,7 +128,7 @@ export default class NodeParser {
   private parseDocumentType(node: DocumentType): string {
     return `self._setDocumentType('${node.name}','${node.publicId ? node.publicId : ''}','${
       node.systemId ? node.systemId : ''
-    }')`;
+      }');`;
   }
 
   private parseTextElement(node: ChildNode): string {
@@ -154,7 +155,7 @@ export default class NodeParser {
   private parseAttributes(node: HTMLElement, element: string[]) {
     return Array.from(node.attributes || []).forEach((attr: Attr) => {
       this.rememberForEasyAccess(attr, element);
-      element.push(`elm.setAttribute('${attr.nodeName}','${attr.nodeValue}')`);
+      element.push(`elm.setAttribute('${attr.nodeName}','${attr.nodeValue}');`);
     });
   }
 
@@ -192,7 +193,7 @@ export default class NodeParser {
       } else if (Array.isArray(parsed)) {
         children.push(...parsed);
       } else {
-        children.push(`elm.appendChild(${parsed})`);
+        children.push(`elm.appendChild(${parsed});`);
       }
     });
 
@@ -260,11 +261,11 @@ export default class NodeParser {
           `node.setAttribute('${attrName}', self._getValue(self.data, '${varName.replace(/[\'"]/g, "\\'")}'));`
         );
         if (liveId) {
-          instructions.push(`self.register(${liveId}, { node, type: 'attribute', 'attrName': '${attrName}'})`);
+          instructions.push(`self.register(${liveId}, { node, type: 'attribute', 'attrName': '${attrName}'});`);
         }
       } else {
         if (liveId) {
-          instructions.push(`self.register(${liveId},{ node, type: 'attribute' })`);
+          instructions.push(`self.register(${liveId},{ node, type: 'attribute' });`);
         }
         //no variable provided; setting attributeMap
         const addToLiveList = liveId
@@ -316,7 +317,7 @@ export default class NodeParser {
   }
 
   toString(): string {
-    return this.output.join(';');
+    return this.output.join('\n');
   }
 
   getFunctions(): string {

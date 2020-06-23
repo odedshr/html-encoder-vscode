@@ -27,10 +27,7 @@ function test(originalString, data = {}, expectedString, description, testFileNa
 
 // getNode() returns a JS-based browser-compatible node (we forcefully inject DOMParser in so it could still run server-side)
 function getNode(htmlString, data, testFileName = undefined) {
-  const encoded = htmlEncoder(htmlString).replace(
-    'class JSNode',
-    `var xmldom_1 = require("xmldom");var window = { DOMParser: xmldom_1.DOMParser };\nclass JSNode`
-  );
+  const encoded = htmlEncoder(htmlString);
   if (testFileName) {
     writeFileSync(`${testFileName}.log.js`, encoded);
   }
@@ -41,20 +38,27 @@ function getNode(htmlString, data, testFileName = undefined) {
 
 // getSSRNode() creates a JS-based SSR-compatible node but then use it as a base for browser-compatible node to return
 function getSSRNode(htmlString, data, testFileName = undefined) {
-  const SSREncoded = htmlEncoder(htmlString, 'js', true);
-  const getNode = requireFromString(SSREncoded).getNode;
+  const ssrEncoded = htmlEncoder(htmlString, 'js', true);
+  const getNode = requireFromString(ssrEncoded).getNode;
   const node = getNode(data);
 
   if (testFileName) {
-    writeFileSync(`${testFileName}.log.js`, encoded);
+    writeFileSync(`${testFileName}.log.js`, ssrEncoded);
   }
 
-  const browserEncoded = htmlEncoder(htmlString).replace(
-    'class JSNode',
-    `var xmldom_1 = require("xmldom");var window = { DOMParser: xmldom_1.DOMParser };class JSNode`
-  );
+  const browserEncoded = htmlEncoder(htmlString);
   const initNode = requireFromString(browserEncoded).initNode;
   return initNode(node);
 }
 
-module.exports = { test, getSSRNode, getNode };
+function getTSString(htmlString, testFileName = undefined) {
+  const tsEncoded = htmlEncoder(htmlString, 'ts');
+
+  if (testFileName) {
+    writeFileSync(`${testFileName}.log.js`, tsEncoded);
+  }
+
+  return tsEncoded;
+}
+
+module.exports = { test, getSSRNode, getNode, getTSString };

@@ -1,5 +1,5 @@
 const assert = require('assert');
-const { test, getNode } = require('./utils.js');
+const { test, getNode, getTSString } = require('./utils.js');
 
 describe('htmlEncoder: edge-cases', () => {
 	it('handles empty file', () => test('', {}, ''));
@@ -29,4 +29,10 @@ describe('htmlEncoder: edge-cases', () => {
 		node.set.liveId = 'bar';
 		assert.equal(node.toString(), '<ul><li><input id="field" value="bar"/></li><li>bar</li><li>bar</li></ul>');
 	});
+
+	it('handles typescript loops', () => {
+		const nodeString = getTSString('<ul><?v@items?><li><?=v?></li><?/@?></ul>');
+
+		assert.ok(nodeString.indexOf("function loopVItems (self:JSNode, docElm:Document, elm:Node, items:any)") > -1);
+	})
 });

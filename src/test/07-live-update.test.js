@@ -5,6 +5,14 @@ const { getNode } = require('./utils');
 const domParser = new DOMParser();
 
 describe('htmlEncoder: real-time-updates', () => {
+  it('throws an error trying to access non-existing property', () => {
+    const node = getNode('<div>Hello <?=name #userName?></div>', {
+      name: 'World',
+    });
+    assert.throws(() => { node.set.notExists = 'Dave'; }, new Error(`property 'notExists' not found`));
+    assert.equal(node.set.notExists, undefined);
+  });
+
   it('supports <?=text #liveId?>', () => {
     const node = getNode('<div>Hello <?=name #userName?></div>', {
       name: 'World',
@@ -101,31 +109,31 @@ describe('htmlEncoder: real-time-updates', () => {
   it('supports live-update full document', () => {
     const node = getNode(
       `<!DOCTYPE html>
-					<html class="no-js" lang="">
-						<body>
-							<div id="foo"></div>
-						</body>
-					</html>`,
+  				<html class="no-js" lang="">
+  					<body>
+  						<div id="foo"></div>
+  					</body>
+  				</html>`,
       {}
     );
     assert.equal(
       node.toString(),
       `<!DOCTYPE html>
-					<html class="no-js" lang="">
-						<body>
-							<div id="foo"></div>
-						</body>
-					</html>`
+  				<html class="no-js" lang="">
+  					<body>
+  						<div id="foo"></div>
+  					</body>
+  				</html>`
     );
     node.set.foo.setAttribute('value', 'bar');
     assert.equal(
       node.toString(),
       `<!DOCTYPE html>
-					<html class="no-js" lang="">
-						<body>
-							<div id="foo" value="bar"></div>
-						</body>
-					</html>`
+  				<html class="no-js" lang="">
+  					<body>
+  						<div id="foo" value="bar"></div>
+  					</body>
+  				</html>`
     );
   });
 });

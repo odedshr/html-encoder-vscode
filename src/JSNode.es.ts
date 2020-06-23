@@ -7,7 +7,8 @@ declare type Property = {
 };
 declare type subRoutineInstructions = {
   startAt: number;
-  fn?: (value: any) => ChildNode[];
+  fn: (value: any) => ChildNode[][];
+  fnName: string;
   items?: any;
   flag?: boolean;
   nodes?: ChildNode[][];
@@ -19,12 +20,16 @@ import { DOMParser } from 'xmldom';
 const window = { DOMParser: DOMParser };
 // feature _SSR end
 
-export function getNode(data: { [key: string]: any } = {}): Node {
-  return <Node><unknown>new JSNode(data);
+interface NodeWithSet extends Node {
+  set: { [key: string]: Property[] }
+}
+
+export function getNode(data: { [key: string]: any } = {}): NodeWithSet {
+  return <NodeWithSet><unknown>new JSNode(data);
 }
 
 export function initNode(existingNode: ChildNode): Node {
-  return <Node><unknown>new JSNode({}, existingNode);
+  return <NodeWithSet><unknown>new JSNode({}, existingNode);
 }
 
 export default class JSNode {
@@ -136,8 +141,9 @@ export default class JSNode {
     return new Template(this.data);
   }
   // feature _getSubTemplate end
+
   // feature _forEach
-  _forEach(iteratorName: string, indexName: string, list: any, parent: Node, fn: () => ChildNode[]): ChildNode[][] {
+  _forEach(iteratorName: string, indexName: string, parent: Node, fn: Function, list: any): ChildNode[][] {
     const self = this;
     const orig = {
       iterator: self._getValue(this.data, iteratorName),
@@ -148,7 +154,7 @@ export default class JSNode {
     for (let id in list) {
       self._setValue(this.data, indexName, id);
       self._setValue(this.data, iteratorName, list[id]);
-      items.push(getAddedChildren(parent, fn));
+      getAddedChildren(parent, fn).forEach(item => items.push(item));
     }
     self._setValue(this.data, iteratorName, orig.iterator);
     self._setValue(this.data, indexName, orig.index);
@@ -225,7 +231,20 @@ export default class JSNode {
   // feature fixHTMLTags end
 }
 
-// functions go here
+// functions goes here
+
+function getAddedChildren(parent: Node, fn: Function): ChildNode[][] {
+  const items = [];
+  const beforeChildCount = parent.childNodes.length;
+  fn();
+  const afterChildCount = parent.childNodes.length;
+
+  for (let i = beforeChildCount; i < afterChildCount; i++) {
+    items.push(parent.childNodes.item(i));
+  }
+
+  return [items];
+}
 
 // feature clone
 function clone(item: any) {
@@ -233,18 +252,6 @@ function clone(item: any) {
 }
 // feature clone end
 
-// feature getAddedChildren
-function getAddedChildren(parent: Node, fn: () => void): ChildNode[] {
-  const items = [];
-  const beforeChildCount = parent.childNodes.length;
-  fn();
-  const afterChildCount = parent.childNodes.length;
-  for (let i = beforeChildCount; i < afterChildCount; i++) {
-    items.push(parent.childNodes.item(i));
-  }
-  return items;
-}
-// feature getAddedChildren end
 
 function initChild(self: JSNode, node: Element) {
   if (!!node.hasAttribute) {
@@ -285,10 +292,11 @@ function initChild(self: JSNode, node: Element) {
         dataLiveLoop.split(';').forEach((attr) => {
           const [startAt, varName, fnName, stringValue] = attr.split('|');
           const fn = eval(fnName).bind({}, self, self.docElm, node);
+
           self.register(varName, {
             type: 'loop',
             node,
-            details: { startAt: +startAt, items: JSON.parse(stringValue), nodes: nodes[varName], fn },
+            details: { startAt: +startAt, items: JSON.parse(stringValue), nodes: nodes[varName], fn, fnName },
           });
         });
     }
@@ -296,13 +304,14 @@ function initChild(self: JSNode, node: Element) {
     const dataLiveIf = node.getAttribute('data-live-if');
     if (dataLiveIf) {
       const nodes = getSubroutineChildren(node, 'data-live-if-child');
+
       dataLiveIf.split(';').forEach((attr) => {
         const [startAt, varName, fnName, flag] = attr.split('|');
         const fn = eval(fnName).bind({}, self, self.docElm, node);
         self.register(varName, {
           type: 'conditional',
           node,
-          details: { startAt: +startAt, flag: flag === 'true', nodes: nodes[varName], fn },
+          details: { startAt: +startAt, flag: flag === 'true', nodes: nodes[varName], fn, fnName },
         });
       });
     }
@@ -340,11 +349,12 @@ function addServerReactiveFunctionality(set: { [key: string]: Property[] } = {})
           break;
         case 'loop':
           if (property.details) {
-            const { fn = () => [], startAt, items, nodes = [] } = property.details;
+            const { startAt, items, nodes = [], fnName } = property.details;
+
             appendAttribute(
               node,
               'data-live-loop',
-              `${startAt}|${key}|${fn.name.replace(/bound /, '')}|${JSON.stringify(items)}`
+              `${startAt}|${key}|${fnName}|${JSON.stringify(items)}`
             );
             nodes.forEach((collection, i) =>
               collection.forEach((item) => appendAttribute(<HTMLElement>item, 'data-live-loop-child', `${key}|${i}`))
@@ -353,8 +363,8 @@ function addServerReactiveFunctionality(set: { [key: string]: Property[] } = {})
           break;
         case 'conditional':
           if (property.details) {
-            const { fn = () => { }, startAt, flag, nodes = [] } = property.details;
-            appendAttribute(node, 'data-live-if', `${startAt}|${key}|${fn.name.replace(/bound /, '')}|${flag}`);
+            const { fn = () => { }, startAt, flag, nodes = [], fnName } = property.details;
+            appendAttribute(node, 'data-live-if', `${startAt}|${key}|${fnName}|${flag}`);
             nodes.forEach((collection, i) =>
               collection.forEach((item) => appendAttribute(<HTMLElement>item, 'data-live-if-child', `${key}|${i}`))
             );
@@ -387,6 +397,10 @@ function addReactiveFunctionality(node: ChildNode, set: { [key: string]: Propert
 function getSetProxy(map: { [key: string]: Property[] }, domParser: DOMParser) {
   return new Proxy(map, {
     get: function (map, prop: string) {
+      if (map[prop] === undefined) {
+        return undefined;
+      }
+      // we may have multiple connectors to this prop, we'll only fetch the value from the first one:
       const property = map[prop][0];
       if (property) {
         switch (property.type) {
@@ -404,6 +418,9 @@ function getSetProxy(map: { [key: string]: Property[] }, domParser: DOMParser) {
       }
     },
     set: function (map: KeyedObject, prop: string, value: any) {
+      if (map[prop] === undefined) {
+        throw new Error(`property '${prop}' not found`);
+      }
       map[prop].forEach((property: Property) => {
         switch (property.type) {
           case 'text':
@@ -417,7 +434,7 @@ function getSetProxy(map: { [key: string]: Property[] }, domParser: DOMParser) {
               }
               property.node = newNode;
             } catch (err) {
-              console.error(`failed to replace node to ${value}`, err);
+              throw new Error(`failed to replace node to ${value} (${err})`);
             }
             break;
           case 'attribute':
@@ -446,9 +463,11 @@ function getSetProxy(map: { [key: string]: Property[] }, domParser: DOMParser) {
   });
 }
 
+// items are groups of nodes, we want to count the number of nodes insides groups until index
 function countElementsUntilIndex(items: ChildNode[][], index: number) {
+  const count = Math.min(index, items.length);
   let acc = 0;
-  for (let i = 0; i < index; i++) {
+  for (let i = 0; i < count; i++) {
     acc += items[i].length;
   }
   return acc;
@@ -457,7 +476,8 @@ function countElementsUntilIndex(items: ChildNode[][], index: number) {
 function updateLoop(property: Property, value: any) {
   if (property.details) {
     const parent = property.node;
-    const { fn = () => [], items, nodes = [], startAt } = property.details;
+    const { fn, items, nodes = [], startAt } = property.details;
+
     const instructions: DiffInstructions = diff(items, value);
 
     const removedChildren: ChildNode[][] = instructions.removed.map((i) => {
@@ -467,12 +487,13 @@ function updateLoop(property: Property, value: any) {
 
     fn(instructions.added).forEach((children: any) => nodes.push(children));
 
-    const updatedNodes = nodes.filter((node) => !removedChildren.includes(node));
-    instructions.positions.forEach((newIndex, i) => {
+    const updatedNodes = nodes.filter((group: ChildNode[]) => !removedChildren.includes(group));
+
+    instructions.positions.forEach((i, newIndex) => {
       if (newIndex !== -1) {
         const newP = countElementsUntilIndex(updatedNodes, newIndex);
         const sibling = parent.childNodes.item(startAt + newP);
-        if (sibling !== updatedNodes[i][0]) {
+        if (updatedNodes[i] && (sibling !== updatedNodes[i][0])) {
           updatedNodes[i].forEach((child) => parent.insertBefore(child, sibling));
         }
       }
@@ -485,39 +506,109 @@ function updateLoop(property: Property, value: any) {
 
 type DiffInstructions = {
   removed: number[];
-  added: ChildNode[];
+  added: any[] | { [key: string]: any };
   positions: number[];
 };
 
-function diff(source: any[], target: any[]): DiffInstructions {
-  const placed: boolean[] = target.map(() => false);
+function toMap(source: any[] | { [key: string]: any }): Map<string | number, any> {
+  const map = new Map();
+  if (Array.isArray(source)) {
+    return new Map(source.map((v, k) => [k, v]));
+  } else {
+    return new Map(Object.keys(source).map(k => [k, source[k]]));
+  }
+}
+
+
+function findIndex(map: Map<string | number, any>, item: any, placed: Map<string | number, boolean>) {
+  let index = 0;
+  for (let [key, targetItem] of map) {
+    if (targetItem === item && !placed.get(key)) {
+      return index;
+    }
+    index++;
+  }
+}
+
+function diff(source: any[] | { [key: string]: any }, target: any[] | { [key: string]: any }): DiffInstructions {
+  const sourceMap = toMap(source);
+  const targetMap = toMap(target);
+  const placed: Map<string | number, boolean> = new Map([...targetMap.keys()].map(key => ([key, false])));
+
+  const toPosition: number[] = [];
+
   const output: DiffInstructions = {
     removed: [],
-    added: [],
+    added: Array.isArray(target) ? [] : {},
     positions: [],
   };
 
-  source.forEach((item, from) => {
-    const position = target.findIndex((targetItem, j) => targetItem === item && !placed[j]);
-    if (position === -1) {
-      output.removed.push(from);
+  // set existing items to either removed or new positions
+  let index = 0;
+  for (let [, item] of sourceMap) {
+    const position = findIndex(targetMap, item, placed);
+    if (position === undefined) {
+      output.removed.push(index);
     } else {
-      output.positions.push(position);
-      placed[position] = true;
+      toPosition.push(position);
+      placed.set(position, true);
     }
-  });
-
+    index++;
+  }
   output.removed = output.removed.sort().reverse();
 
-  target.forEach((item, position) => {
-    if (!placed[position]) {
-      output.positions.push(position);
-      output.added.push(item);
+  // write new item positions
+  index = 0;
+  for (let [key, item] of targetMap) {
+    if (!placed.get(key)) {
+      toPosition.push(index);
+      if (Array.isArray(output.added)) {
+        output.added.push(item);
+      } else {
+        output.added[key] = item;
+      }
     }
+    index++;
+  }
+
+  // toPosition is [index]=>target-position, but I want to know who goes to target-position
+  // so I transpose the array;
+  toPosition.forEach((target, index) => {
+    output.positions[target] = index;
   });
 
   return output;
 }
+
+// function diff(source: any[], target: any[]): DiffInstructions {
+//   const placed: boolean[] = target.map(() => false);
+//   const output: DiffInstructions = {
+//     removed: [],
+//     added: [],
+//     positions: [],
+//   };
+
+//   source.forEach((item, from) => {
+//     const position = target.findIndex((targetItem, j) => targetItem === item && !placed[j]);
+//     if (position === -1) {
+//       output.removed.push(from);
+//     } else {
+//       output.positions.push(position);
+//       placed[position] = true;
+//     }
+//   });
+
+//   output.removed = output.removed.sort().reverse();
+
+//   target.forEach((item, position) => {
+//     if (!placed[position]) {
+//       output.positions.push(position);
+//       output.added.push(item);
+//     }
+//   });
+
+//   return output;
+// }
 
 function updateConditional(property: Property, value: boolean) {
   if (property.details) {
@@ -531,7 +622,8 @@ function updateConditional(property: Property, value: boolean) {
         child && parent.removeChild(child);
       }
     } else if (!flag && value) {
-      updatedNodes = [fn(value)];
+      updatedNodes = fn(value);
+
       if (parent.childNodes.length < startAt) {
         property.details.startAt = parent.childNodes.length - updatedNodes[0].length;
       } else {

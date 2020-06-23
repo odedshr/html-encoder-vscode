@@ -12,7 +12,19 @@ describe('htmlEncoder: real-time-sub-routines', () => {
 		assert.equal(node.toString(), '<ul><li>first</li><li>last</li></ul>');
 		node.set.value = ['c', 'd', 'b'];
 		assert.equal(node.toString(), '<ul><li>first</li><li>c</li><li>d</li><li>b</li><li>last</li></ul>');
-		assert.equal(JSON.stringify(node.set.value), '["c","d","b"]', 'value is updated set');
+		assert.equal(JSON.stringify(node.set.value), '["c","d","b"]');
+	});
+
+	it('supports live loop that is initially empty', () => {
+		const node = getNode('<ul><li>first</li><?v@items#?><li><?=v?></li><?/@?><li>last</li></ul>', {});
+		assert.equal(node.toString(), '<ul><li>first</li><li>last</li></ul>');
+		assert.equal(JSON.stringify(node.set.items), '[]');
+		node.set.items = { 'foo': 'a', 'bar': 'b' };
+		assert.equal(node.toString(), '<ul><li>first</li><li>a</li><li>b</li><li>last</li></ul>');
+		assert.equal(JSON.stringify(node.set.items), '{"foo":"a","bar":"b"}');
+		node.set.items = ['c', 'd', 'b'];
+		assert.equal(node.toString(), '<ul><li>first</li><li>c</li><li>d</li><li>b</li><li>last</li></ul>');
+		assert.equal(JSON.stringify(node.set.items), '["c","d","b"]');
 	});
 
 	it('supports multiple live loops', () => {

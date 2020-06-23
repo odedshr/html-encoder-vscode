@@ -10,7 +10,7 @@ export type TargetType = 'js' | 'es' | 'ts';
 export default function htmlEncoder(html: string, type: TargetType = 'js', isSSR = false) {
   const document: Document = domParser.parseFromString(html.replace(/\n\s+>/g, '>'), 'text/xml');
 
-  return treeShake(transpile(new NodeParser(document), type, isSSR));
+  return treeShake(transpile(new NodeParser(document, type === 'ts'), type, isSSR));
 }
 
 function getTemplateFile(type: TargetType) {
@@ -38,7 +38,7 @@ function transpile(parser: NodeParser, type: TargetType, isSSR: boolean) {
 
   return readFileSync(getTemplateFile(type), { encoding })
     .replace(/console\.log\(self, docElm\)[;,]/, `this.node = ${parsedString};`)
-    .replace(/\/\/ functions go here/, parser.getFunctions());
+    .replace(/\/\/ functions goes here/, parser.getFunctions());
 }
 
 function treeShake(code: string) {
@@ -54,7 +54,7 @@ function treeShake(code: string) {
 }
 
 function isFeatureUsed(code: string, feature: string): boolean {
-  return (code.match(new RegExp(`${feature} = function|${feature}\\(`, 'gm')) || []).length > 1;
+  return (code.match(new RegExp(`${feature} = function|${feature}\\(|${feature}.bind`, 'gm')) || []).length > 1;
 }
 
 function findFeatures(code: string): string[] {

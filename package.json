@@ -13,7 +13,9 @@
     "build:es:watch": "tsc -w -p ./tsconfig.es.json",
     "pretest": "npm run build",
     "test": "mocha src/test/*.test.js",
-    "test:extension": "node ./out/test/runTest.js"
+    "test:extension": "node ./out/test/runTest.js",
+    "vscode:package": "vsce package",
+    "vscode:publish": "vsce publish"
   },
   "categories": [
     "Programming Languages",
@@ -21,8 +23,8 @@
   ],
   "icon": "images/icon.png",
   "galleryBanner": {
-    "color": "#ecc469",
-    "theme": "light"
+    "color": "#4e6885",
+    "theme": "dark"
   },
   "publisher": "odedshr",
   "author": {
