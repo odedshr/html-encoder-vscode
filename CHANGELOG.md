@@ -43,7 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - support for typescript (realized `.vscodeignore` prevents packing ts files)
 - getNode() now returns Node instead of the obscure JSNode
 
-## [1.0.3] - 2020-06-28
+## [1.0.3] - 2020-06-19
+
+### Fixed
+
+- more fixes for typescript
+
+## [1.0.4] - 2020-06-28
 
 ### Added
 
@@ -52,4 +58,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - improved support for loops (empty initial value + switching from arrays and objects)
--
