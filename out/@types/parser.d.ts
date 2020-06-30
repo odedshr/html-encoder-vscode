@@ -2,8 +2,8 @@ export default class NodeParser {
     rootNode: Document;
     output: string[];
     functions: string[];
-    isSSR: false;
-    constructor(document: Document);
+    isTypescript: boolean;
+    constructor(document: Document, isTypescript: boolean);
     private parseDocument;
     private parseNode;
     private parseProcessInstruction;
@@ -29,6 +29,9 @@ export default class NodeParser {
     _parseCssValue(value: string): {
         condition: string;
         varName: string;
+    } | {
+        condition?: undefined;
+        varName?: undefined;
     };
     _getCssInstructions(classes: string[]): string[];
     toString(): string;

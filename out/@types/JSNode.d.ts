@@ -9,16 +9,22 @@ declare type Property = {
 };
 declare type subRoutineInstructions = {
     startAt: number;
-    fn?: (value: any) => ChildNode[];
+    fn: (value: any) => ChildNode[][];
+    fnName: string;
     items?: any;
     flag?: boolean;
     nodes?: ChildNode[][];
 };
 import { DOMParser } from 'xmldom';
+interface NodeWithSet extends Node {
+    set: {
+        [key: string]: Property[];
+    };
+}
 export declare function getNode(data?: {
     [key: string]: any;
-}): JSNode;
-export declare function initNode(existingNode: ChildNode): JSNode;
+}): NodeWithSet;
+export declare function initNode(existingNode: ChildNode): Node;
 export default class JSNode {
     set: {
         [key: string]: Property[];
@@ -38,7 +44,7 @@ export default class JSNode {
     protected _defineSet(isSSR: boolean): void;
     private findHTMLChildren;
     _getSubTemplate(templateName: string): any;
-    _forEach(iteratorName: string, indexName: string, list: any, parent: Node, fn: () => ChildNode[]): ChildNode[][];
+    _forEach(iteratorName: string, indexName: string, parent: Node, fn: Function, list: any): ChildNode[][];
     _getPrecedingOrSelf(elm: HTMLElement): HTMLElement;
     _getValue(data: KeyedObject, path: string): any;
     _setValue(data: KeyedObject, path: string, value: any): void;

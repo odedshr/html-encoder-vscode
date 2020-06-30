@@ -1,102 +1,72 @@
-import { basename, join } from 'path';
-import { existsSync, readFileSync, writeFileSync, lstatSync, mkdirSync, readdirSync, rmdirSync, unlinkSync } from 'fs';
-import { watch } from 'chokidar';
-import htmlEncoder from './index.js';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { watch, FSWatcher } from 'chokidar';
+import { Glob } from 'glob';
+import htmlEncoder from './htmlEncoder';
+import findTargets, { Target, allTargetsPattern } from './findTargets';
 
-type TargetDef = { path?: string; ts?: boolean; ssr?: boolean };
-type Entry = {
-	source: string | string[];
-	target?: string | string[] | TargetDef[];
-};
+if (require.main === module) {
+	// this module was run directly from the command line as in node xxx.js
 
-const packageJSON = JSON.parse(readFileSync(`${process.cwd()}/package.json`, 'utf-8'));
-const entries = packageJSON['html-encode'] || [];
-const args = process.argv;
-const ts = args.indexOf('ts') > -1;
-const ssr = args.indexOf('ssr') > -1;
+	const args = process.argv.slice(2);
+	const entries = args.filter(arg => ['-w', '-watch'].indexOf(arg) === -1)
 
-entries.map((entry: Entry) => {
-	const targets = standardizeTargets(entry.target || [{ ts, ssr }], ts, ssr);
-
-	return toArray(entry.source).map((source: string) => {
-		return watch(source)
-			.on('add', (path) => copy(path, getTargets(targets, path)))
-			.on('change', (path) => copy(path, getTargets(targets, path)))
-			.on('unlink', (path) => remove(source, path, getTargets(targets, path)))
-			.on('addDir', (path) => source !== path && copy(path, getTargets(targets, path)))
-			.on('unlinkDir', (path) => remove(source, path, getTargets(targets, path)));
-	});
-});
-
-function standardizeTargets(targets: string | string[] | TargetDef[], ts: boolean, ssr: boolean): TargetDef[] {
-	return toArray(targets).map((target: string | TargetDef) => {
-		return typeof target === 'string' ? { path: target, ts, ssr } : { ts, ssr, ...target };
-	});
+	encode(entries, entries.length !== args.length).catch(err => console.error(err.message));
 }
 
-function getTargets(targets: TargetDef[], sourcePath: string) {
-	return targets.map((target) => {
-		let path = replaceFileExtension(sourcePath, target.ts);
-		if (target.path !== undefined) {
-			path = isTargetFolder(target.path)
-				? [...target.path.split('/'), path.split('/').pop()].join('/').replace('//', '/')
-				: target.path;
-		}
-		return { path, ts: target.ts, ssr: target.ssr };
-	});
+async function glob(query: string): Promise<string[]> {
+	return new Promise((resolve, reject) => new Glob(query, (er, files) =>
+		er ? reject(er) : resolve(files)
+	));
 }
 
-// return true if path doesn't end with '/', is an existing folder or last element has no '.' in it
-function isTargetFolder(path: string) {
-	return (
-		path.charAt(path.length - 1) === '/' ||
-		(existsSync(path) && lstatSync(path).isDirectory()) ||
-		path.split('/').pop().indexOf('.') === -1
-	);
-}
-
-function toArray(element: any) {
-	return Array.isArray(element) ? element : [element];
-}
-
-function getTargetPath(source: string, file: string, target: string) {
-	console.log('\n\ngetTargetPath', source, target);
-	return file.replace(source, target);
-}
-
-function remove(source: string, file: string, targets: TargetDef[]) {
-	targets.forEach((target) =>
-		removeFileSync(getTargetPath(source, replaceFileExtension(file, target.ts), target.path))
-	);
-}
-
-function copy(file: string, targets: TargetDef[]) {
-	targets.forEach((target) => console.log(copyFolderRecursiveSync(file, target)));
-}
-
-function replaceFileExtension(filename: string, toTypescript: boolean) {
-	return filename.replace(/.[^.]{1,10}$/, `.${toTypescript ? 'ts' : 'js'}`);
-}
-
-function copyFileSync(source: string, target: TargetDef) {
-	let targetFile = target.path;
-
-	//if target is a directory a new file with the same name will be created
-	if (existsSync(targetFile)) {
-		if (lstatSync(targetFile).isDirectory()) {
-			targetFile = replaceFileExtension(join(targetFile, basename(source)), target.ts);
-		}
-	} else {
-		targetFile
-			.substring(0, target.path.lastIndexOf('/'))
-			.split('/')
-			.reduce((memo, folder) => {
-				memo += folder;
-				verifyFolderExists(memo);
-				return `${memo}/`;
-			}, '');
+export async function encode(entries: string[] = [], isWatch: boolean = false): Promise<(FSWatcher)[]> {
+	if (!entries.length) {
+		return new Promise((r, reject) => reject(new Error('no source files provided')));
 	}
-	writeFileSync(targetFile, htmlEncoder(readFileSync(source, { encoding: 'utf-8' }), target.ts, target.ssr));
+
+	const watchers: (FSWatcher)[] = []
+
+	await Promise.all((toArray(entries))
+		.map(
+			async (entry: string) => (await glob(entry)).map(
+				(file: string) => isWatch ? watchers.push(addWatch(file)) : encodeFile(file)
+			))
+	);
+
+	return watchers;
+}
+
+function addWatch(entry: string): FSWatcher {
+	return watch(entry)
+		.on('add', encodeFile)
+		.on('change', encodeFile)
+}
+
+function encodeFile(path: string) {
+	if (!existsSync(path)) {
+		console.error(`file not exists: ${path}`);
+	} else if (path.match(/\.template\.html$/)) {
+		const text = readFileSync(path, { encoding: 'utf-8' });
+		findTargets(path, text).forEach((target: Target) => copyFileSync(text, target))
+	}
+	return false;
+}
+
+function copyFileSync(text: string, target: Target) {
+	let targetFile = target.path;
+	let accPath: string[] = [];
+
+	targetFile
+		.substring(0, target.path.lastIndexOf('/'))
+		.split('/')
+		.forEach((folder: string) => {
+			accPath.push(folder);
+			if (accPath.length >= 1 && accPath[0].length) {
+				verifyFolderExists(accPath.join('/'));
+			}
+		});
+
+	writeFileSync(targetFile, htmlEncoder(text.replace(allTargetsPattern, ''), target.type, target.ssr));
 }
 
 function verifyFolderExists(folder: string) {
@@ -105,35 +75,6 @@ function verifyFolderExists(folder: string) {
 	}
 }
 
-function copyFolderRecursiveSync(source: string, target: TargetDef) {
-	if (lstatSync(source).isDirectory()) {
-		verifyFolderExists(target.path);
-
-		readdirSync(source).forEach((file) => {
-			const curSource = join(source, file);
-
-			if (lstatSync(curSource).isDirectory()) {
-				copyFolderRecursiveSync(curSource, target);
-			} else {
-				copyFileSync(curSource, target);
-			}
-		});
-	} else {
-		copyFileSync(source, target);
-	}
-
-	return `copying ${source} => ${target.path}`;
-}
-
-function removeFileSync(path: string) {
-	if (existsSync(path)) {
-		if (lstatSync(path).isDirectory()) {
-			readdirSync(path).forEach((file) => removeFileSync(`${path}/${file}`));
-			rmdirSync(path);
-		} else {
-			unlinkSync(path); // delete file
-		}
-	}
-
-	return `removing ${path}`;
+function toArray(element: any) {
+	return Array.isArray(element) ? element : [element];
 }

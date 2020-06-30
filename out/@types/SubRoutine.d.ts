@@ -1,5 +1,7 @@
 declare type subRoutineType = 'loop' | 'if';
-export default class SubRoutine {
+export declare class SubRoutineEnd {
+}
+export declare class SubRoutine {
     type: subRoutineType;
     varName: string;
     children: string[];
@@ -8,7 +10,9 @@ export default class SubRoutine {
     functionName: string;
     loopIterator?: string;
     loopIndex?: string;
-    constructor(type: subRoutineType, varName: string, liveId?: string);
+    isTypescript: boolean;
+    constructor(type: subRoutineType, varName: string, isTypescript: boolean, liveId?: string);
+    private toCamelCase;
     toString(): string;
     getFunction(): string;
 }
