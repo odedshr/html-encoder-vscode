@@ -1,4 +1,4 @@
-# HTML Encoder extension for VS-code
+# HTML Encoder CLI
 
 [![Build Status](https://travis-ci.org/odedshr/html-encoder.svg?branch=master)](https://travis-ci.org/odedshr/html-encoder)
 
