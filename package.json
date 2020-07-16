@@ -50,7 +50,7 @@
     }
   ],
   "engines": {
-    "vscode": "^1.45.1"
+    "vscode": "^1.46.0"
   },
   "activationEvents": [
     "onLanguage:html-encoder"
@@ -70,25 +70,25 @@
     ]
   },
   "dependencies": {
-    "@types/xmldom": "^0.1.29",
+    "@types/xmldom": "^0.1.30",
     "chokidar": "^3.4.0",
     "xmldom": "^0.3.0"
   },
   "devDependencies": {
-    "@types/glob": "^7.1.1",
-    "@types/mocha": "^7.0.2",
-    "@types/node": "^14.0.10",
-    "@types/vscode": "^1.45.1",
-    "@typescript-eslint/eslint-plugin": "^3.1.0",
-    "@typescript-eslint/parser": "^3.1.0",
+    "@types/glob": "^7.1.3",
+    "@types/mocha": "^8.0.0",
+    "@types/node": "^14.0.23",
+    "@typescript-eslint/eslint-plugin": "^3.6.1",
+    "@typescript-eslint/parser": "^3.6.1",
     "assert": "^2.0.0",
     "assetomat": "^1.1.1",
-    "eslint": "^6.8.0",
+    "eslint": "^7.4.0",
     "glob": "^7.1.6",
-    "mocha": "^7.2.0",
+    "mocha": "^8.0.1",
     "require-from-string": "^2.0.2",
-    "typescript": "^3.9.3",
+    "typescript": "^3.9.6",
     "uglify-js": "^3.9.4",
+    "vscode": "^1.1.37",
     "vscode-test": "^1.3.0"
   }
 }

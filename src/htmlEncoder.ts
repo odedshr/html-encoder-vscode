@@ -38,7 +38,7 @@ function transpile(parser: NodeParser, type: TargetType, isSSR: boolean) {
 
   return readFileSync(getTemplateFile(type), { encoding })
     .replace(/console\.log\(self, docElm\)[;,]/, `this.node = ${parsedString};`)
-    .replace(/\/\/ functions goes here/, parser.getFunctions());
+    .replace(/funcs(\: \{ \[key\: string\]\: any \})? = \{\};/, `funcs = {${parser.getFunctions()}};`);
 }
 
 function treeShake(code: string) {

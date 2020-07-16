@@ -1,7 +1,7 @@
 declare type KeyedObject = { [key: string]: any };
 declare type Property = {
   type: 'text' | 'html' | 'attribute' | 'loop' | 'conditional';
-  node: Element;
+  node: Node;
   attrName?: string;
   details?: subRoutineInstructions;
 };
@@ -38,6 +38,7 @@ export default class JSNode {
   node: ChildNode;
   domParser: DOMParser;
   docElm: Document;
+  funcs: { [key: string]: any } = {};
 
   constructor(data: object, existingNode?: ChildNode) {
     this.domParser = new window.DOMParser();
@@ -291,7 +292,7 @@ function initChild(self: JSNode, node: Element) {
       dataLiveLoop &&
         dataLiveLoop.split(';').forEach((attr) => {
           const [startAt, varName, fnName, stringValue] = attr.split('|');
-          const fn = eval(fnName).bind({}, self, self.docElm, node);
+          const fn = self.funcs[fnName].bind({}, self, self.docElm, node);
 
           self.register(varName, {
             type: 'loop',
@@ -307,7 +308,7 @@ function initChild(self: JSNode, node: Element) {
 
       dataLiveIf.split(';').forEach((attr) => {
         const [startAt, varName, fnName, flag] = attr.split('|');
-        const fn = eval(fnName).bind({}, self, self.docElm, node);
+        const fn = self.funcs[fnName].bind({}, self, self.docElm, node);
         self.register(varName, {
           type: 'conditional',
           node,
@@ -366,7 +367,7 @@ function addServerReactiveFunctionality(set: { [key: string]: Property[] } = {})
             const { fn = () => { }, startAt, flag, nodes = [], fnName } = property.details;
             appendAttribute(node, 'data-live-if', `${startAt}|${key}|${fnName}|${flag}`);
             nodes.forEach((collection, i) =>
-              collection.forEach((item) => appendAttribute(<HTMLElement>item, 'data-live-if-child', `${key}|${i}`))
+              collection.forEach((item) => (item.nodeType === 1) && appendAttribute(<HTMLElement>item, 'data-live-if-child', `${key}|${i}`))
             );
           }
           break;
@@ -441,13 +442,13 @@ function getSetProxy(map: { [key: string]: Property[] }, domParser: DOMParser) {
             if (property.attrName) {
               // single attribute
               if (value === null) {
-                property.node.removeAttribute(property.attrName);
+                (property.node as Element).removeAttribute(property.attrName);
               } else {
-                property.node.setAttribute(property.attrName, value);
+                (property.node as Element).setAttribute(property.attrName, value);
               }
             } else {
               // attribute map
-              Object.keys(value).forEach((attrName) => property.node.setAttribute(attrName, value[attrName]));
+              Object.keys(value).forEach((attrName) => (property.node as Element).setAttribute(attrName, value[attrName]));
             }
             break;
           case 'loop':
@@ -628,7 +629,11 @@ function updateConditional(property: Property, value: boolean) {
         property.details.startAt = parent.childNodes.length - updatedNodes[0].length;
       } else {
         const sibling = parent.childNodes.item(startAt);
-        updatedNodes[0].forEach((node) => parent.insertBefore(node, sibling));
+        updatedNodes[0].forEach((node) => {
+          if (indexOfChild(parent.childNodes, node) !== startAt) {
+            parent.insertBefore(node, sibling);
+          }
+        });
       }
     }
 

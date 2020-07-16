@@ -1,4 +1,4 @@
-import { SubRoutine, SubRoutineEnd } from './SubRoutine';
+import { SubRoutine, SubRoutineEnd, resetCounter } from './SubRoutine';
 
 const NodeType = {
   Element: 1,
@@ -22,6 +22,7 @@ export default class NodeParser {
   isTypescript: boolean;
 
   constructor(document: Document, isTypescript: boolean) {
+    resetCounter();
     this.rootNode = document;
     this.isTypescript = isTypescript;
 
@@ -321,6 +322,6 @@ export default class NodeParser {
   }
 
   getFunctions(): string {
-    return this.functions.join('\n');
+    return this.functions.join(',\n');
   }
 }

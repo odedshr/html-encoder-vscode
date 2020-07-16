@@ -2,7 +2,7 @@ const assert = require('assert');
 const { getSSRNode } = require('./utils.js');
 const tags = / data-live-.*?=".*?"/g;
 
-describe('htmlEncoder: real-time-sub-routines', () => {
+describe('htmlEncoder: server-side-rendering sub-routines', () => {
 	it('supports <?value@array #liveId?></?@?>', () => {
 		const node = getSSRNode('<ul><li>first</li><?v@items #value?><li><?=v?></li><?/@?><li>last</li></ul>', {
 			items: ['a', 'b', 'c'],

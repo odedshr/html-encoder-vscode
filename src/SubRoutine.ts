@@ -1,5 +1,11 @@
 type subRoutineType = 'loop' | 'if';
 
+let count = 1;
+
+export function resetCounter() {
+  count = 1;
+}
+
 export class SubRoutineEnd { }
 export class SubRoutine {
   type: subRoutineType;
@@ -24,7 +30,7 @@ export class SubRoutine {
     } else if (liveId && liveId.charAt(0) === '#') {
       this.liveId = liveId.substring(1);
     }
-    this.functionName = this.toCamelCase(`${type} ${this.varName.replace(/\W/g, ' ')} ${this.liveId || ''}`);
+    this.functionName = this.toCamelCase(`${type} ${this.varName.replace(/\W/g, ' ')}${this.liveId || ''}_${count++}`);
   }
 
   private toCamelCase(str: string) {
@@ -47,7 +53,7 @@ export class SubRoutine {
           ? `self.register('${this.liveId}', { type: 'loop', node: elm, details: { startAt, fn, fnName: '${this.functionName}', items, nodes } });\n`
           : '';
         return `{ 
-          const fn = ${this.functionName}.bind({},self, docElm, elm);
+          const fn = self.funcs.${this.functionName}.bind({},self, docElm, elm);
 					const startAt = elm.childNodes.length;
           const items = clone(self._getValue(self.data, '${varName}')) || [];
 					const nodes = fn(items);
@@ -58,8 +64,8 @@ export class SubRoutine {
           ? `self.register('${this.liveId}', { type: 'conditional', node: elm, details: { startAt, fn, fnName: '${this.functionName}', nodes, flag } });\n`
           : '';
         return ` {
-					const startAt = elm.childNodes.length;
-					const fn = ${this.functionName}.bind({},self, docElm, elm);
+          const startAt = elm.childNodes.length;
+					const fn = self.funcs.${this.functionName}.bind({},self, docElm, elm);
 					const flag = !!self._getValue(self.data, '${this.varName}');
 					const nodes = flag ? fn() : [];
 
@@ -72,7 +78,7 @@ export class SubRoutine {
     switch (this.type) {
       case 'loop':
         const loopArgs = this.isTypescript ? 'self:JSNode, docElm:Document, elm:Node, items:any' : 'self, docElm, elm, items';
-        return `function ${this.functionName} (${loopArgs}) {
+        return `${this.functionName} (${loopArgs}) {
           const fn = function() {
             ${this.children.join('\n')}
           };
@@ -82,7 +88,7 @@ export class SubRoutine {
 
       case 'if':
         const ifArgs = this.isTypescript ? 'self:JSNode, docElm:Document, elm:Node' : 'self, docElm, elm';
-        return `function ${this.functionName} (${ifArgs}) {
+        return `${this.functionName} (${ifArgs}) {
           const fn = function () { ${this.children.join('\n')} };
 	        return getAddedChildren(elm, fn);
         }`;

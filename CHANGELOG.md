@@ -58,3 +58,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - improved support for loops (empty initial value + switching from arrays and objects)
+
+## [1.0.5] - ?
+
+### Fixed
+
+- property.node is now Node (and not Element) to support TextNode
+- can now handle using the same conditional more than once
+
+### Known Issues
+
+1. ServerSide text condition cannot be removed (as I didn't have where to mark the data-live-if-child)

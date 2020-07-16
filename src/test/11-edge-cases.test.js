@@ -33,6 +33,6 @@ describe('htmlEncoder: edge-cases', () => {
 	it('handles typescript loops', () => {
 		const nodeString = getTSString('<ul><?v@items?><li><?=v?></li><?/@?></ul>');
 
-		assert.ok(nodeString.indexOf("function loopVItems (self:JSNode, docElm:Document, elm:Node, items:any)") > -1);
+		assert.ok(nodeString.indexOf("loopVItems_1 (self:JSNode, docElm:Document, elm:Node, items:any)") > -1);
 	})
 });

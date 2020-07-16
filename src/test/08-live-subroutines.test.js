@@ -77,4 +77,16 @@ describe('htmlEncoder: real-time-sub-routines', () => {
 		node.set.foo = true;
 		assert.equal(node.toString(), '<ul><li>Foo</li><li>aa</li><li>bb</li><li>Bar</li></ul>');
 	});
+
+	it('supports using the same flag twice', () => {
+		const node = getNode('<div><??flag1#?>foo<?/??><??flag1#?>bar<?/??></div>', {
+			flag1: true,
+		});
+		assert.equal(node.toString(), '<div>foobar</div>');
+		assert.equal(node.set.flag1, true, 'value is set to true');
+		node.set.flag1 = false;
+		assert.equal(node.toString(), '<div></div>');
+		node.set.flag1 = true;
+		assert.equal(node.toString(), '<div>foobar</div>');
+	});
 });

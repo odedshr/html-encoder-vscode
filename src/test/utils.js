@@ -39,13 +39,13 @@ function getNode(htmlString, data, testFileName = undefined) {
 // getSSRNode() creates a JS-based SSR-compatible node but then use it as a base for browser-compatible node to return
 function getSSRNode(htmlString, data, testFileName = undefined) {
   const ssrEncoded = htmlEncoder(htmlString, 'js', true);
-  const getNode = requireFromString(ssrEncoded).getNode;
-  const node = getNode(data);
 
   if (testFileName) {
     writeFileSync(`${testFileName}.log.js`, ssrEncoded);
   }
 
+  const getNode = requireFromString(ssrEncoded).getNode;
+  const node = getNode(data);
   const browserEncoded = htmlEncoder(htmlString);
   const initNode = requireFromString(browserEncoded).initNode;
   return initNode(node);
