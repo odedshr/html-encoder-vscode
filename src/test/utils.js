@@ -55,7 +55,7 @@ function getTSString(htmlString, testFileName = undefined) {
   const tsEncoded = htmlEncoder(htmlString, 'ts');
 
   if (testFileName) {
-    writeFileSync(`${testFileName}.log.js`, tsEncoded);
+    writeFileSync(`${testFileName}.log.ts`, tsEncoded);
   }
 
   return tsEncoded;

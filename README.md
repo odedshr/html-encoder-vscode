@@ -9,7 +9,9 @@
 ## The Main Gist
 
 HTML-Encoder converts your template HTML file to a JavaScript/TypeScript function (henceforth JSNode) as soon as you save it.
-The file can then be embedded in either server-side or client-side code. It's pretty much like [JSX](https://reactjs.org/docs/introducing-jsx.html) or [Svelete](https://svelte.dev/) but without any special render command and while allowing you to write vanilla/Typescript code.
+The file can then be embedded in either server-side or client-side code. It's pretty much like [JSX](https://reactjs.org/docs/introducing-jsx.html) or [Svelete](https://svelte.dev/) but without any special render command and it allowing you to write vanilla/Typescript code.
+
+See a live example at the [showcase](https://odedshr.github.io/html-encoder-showcase/).
 
 ### Getting it to work
 

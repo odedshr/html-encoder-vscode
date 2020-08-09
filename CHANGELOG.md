@@ -59,12 +59,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - improved support for loops (empty initial value + switching from arrays and objects)
 
-## [1.0.5] - ?
+## [1.0.5] - 2020-08-09
 
 ### Fixed
 
 - property.node is now Node (and not Element) to support TextNode
 - can now handle using the same conditional more than once
+- support for css in loops
 
 ### Known Issues
 

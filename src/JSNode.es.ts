@@ -38,7 +38,7 @@ export default class JSNode {
   node: ChildNode;
   domParser: DOMParser;
   docElm: Document;
-  funcs: { [key: string]: any } = {};
+  funcs: { [key: string]: Function } = {};
 
   constructor(data: object, existingNode?: ChildNode) {
     this.domParser = new window.DOMParser();
@@ -488,9 +488,14 @@ function updateLoop(property: Property, value: any) {
 
     fn(instructions.added).forEach((children: any) => nodes.push(children));
 
+    // updatedNodes has added nodes at the end, so we know where they are, but it will cause issues on second iteration
     const updatedNodes = nodes.filter((group: ChildNode[]) => !removedChildren.includes(group));
+    // orderedNodes will keep the nodes in the right order
+    const orderedNodes: ChildNode[][] = [];
 
     instructions.positions.forEach((i, newIndex) => {
+      orderedNodes.push(updatedNodes[i]);
+
       if (newIndex !== -1) {
         const newP = countElementsUntilIndex(updatedNodes, newIndex);
         const sibling = parent.childNodes.item(startAt + newP);
@@ -500,7 +505,7 @@ function updateLoop(property: Property, value: any) {
       }
     });
 
-    property.details.nodes = updatedNodes;
+    property.details.nodes = orderedNodes;
     property.details.items = clone(value);
   }
 }
@@ -580,36 +585,6 @@ function diff(source: any[] | { [key: string]: any }, target: any[] | { [key: st
 
   return output;
 }
-
-// function diff(source: any[], target: any[]): DiffInstructions {
-//   const placed: boolean[] = target.map(() => false);
-//   const output: DiffInstructions = {
-//     removed: [],
-//     added: [],
-//     positions: [],
-//   };
-
-//   source.forEach((item, from) => {
-//     const position = target.findIndex((targetItem, j) => targetItem === item && !placed[j]);
-//     if (position === -1) {
-//       output.removed.push(from);
-//     } else {
-//       output.positions.push(position);
-//       placed[position] = true;
-//     }
-//   });
-
-//   output.removed = output.removed.sort().reverse();
-
-//   target.forEach((item, position) => {
-//     if (!placed[position]) {
-//       output.positions.push(position);
-//       output.added.push(item);
-//     }
-//   });
-
-//   return output;
-// }
 
 function updateConditional(property: Property, value: boolean) {
   if (property.details) {

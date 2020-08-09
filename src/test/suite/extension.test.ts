@@ -10,9 +10,10 @@ suite('Extension Test Suite', async () => {
 	vscode.window.showInformationMessage('Start all tests');
 	const tempFolder = normalize(`${__dirname}/../../../.tmp`);
 
-	test('non-template html file', async () => {
+	test('non-template html file', async function () {
+		this.timeout(6000);
+
 		const uniqueFolder = `${tempFolder}1`;
-		removeFolder(uniqueFolder);
 		addFolder(uniqueFolder);
 		await saveFile(normalize(`${uniqueFolder}/index.html`), 'hello world', '!');
 		const files = readdirSync(uniqueFolder);

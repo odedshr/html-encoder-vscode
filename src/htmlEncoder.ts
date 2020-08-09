@@ -12,8 +12,11 @@ export default function htmlEncoder(html: string, type: TargetType = 'js', isSSR
 
   return treeShake(transpile(new NodeParser(document, type === 'ts'), type, isSSR));
 }
+function isTypescript(type: TargetType): boolean {
+  return type === 'ts';
+}
 
-function getTemplateFile(type: TargetType) {
+function getTemplateFile(type: TargetType): string {
   switch (type) {
     case 'ts':
       return `${__dirname}/JSNode.template-ts`;
@@ -36,9 +39,12 @@ function transpile(parser: NodeParser, type: TargetType, isSSR: boolean) {
     parsedString += `;self._defineSet(${isSSR});`;
   }
 
+  const functions = parser.getFunctions();
+
   return readFileSync(getTemplateFile(type), { encoding })
     .replace(/console\.log\(self, docElm\)[;,]/, `this.node = ${parsedString};`)
-    .replace(/funcs(\: \{ \[key\: string\]\: any \})? = \{\};/, `funcs = {${parser.getFunctions()}};`);
+    .replace(/funcs: { \[key: string\]: Function } = {};/, `funcs: { \[key: string\]: Function } = {${functions}};/*here?*/`)
+    .replace(/funcs = {};/, `funcs = {${functions}};`);
 }
 
 function treeShake(code: string) {

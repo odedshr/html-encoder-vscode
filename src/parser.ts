@@ -287,7 +287,7 @@ export default class NodeParser {
 
   // value is `condition?cssName`
   _parseCssValue(value: string) {
-    const matches = value.match(/((.+)\?)?([^=.]+)/);
+    const matches = value.match(/((.+)\?)?([^=]+)/);
     return matches !== null ? { condition: matches[2], varName: matches[3] } : {};
   }
 
