@@ -22,13 +22,7 @@ export function run(): Promise<void> {
 
 			try {
 				// Run the mocha test
-				mocha.run(failures => {
-					if (failures > 0) {
-						reject(new Error(`${failures} tests failed.`));
-					} else {
-						resolve();
-					}
-				});
+				mocha.run(failures => (failures > 0) ? reject(new Error(`${failures} tests failed.`)) : resolve());
 			} catch (err) {
 				console.error(err);
 				reject(err);

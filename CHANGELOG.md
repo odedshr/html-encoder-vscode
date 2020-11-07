@@ -70,3 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Known Issues
 
 1. ServerSide text condition cannot be removed (as I didn't have where to mark the data-live-if-child)
+
+## [1.0.6] - 2020-11-07
+
+💥 Moved htmlEncoder to a separated project; supporting its latest version 2.0.6

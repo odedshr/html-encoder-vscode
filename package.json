@@ -1,25 +1,32 @@
 {
-  "name": "html-encoder",
-  "displayName": "HTML Encoder",
+  "name": "vscode-html-encoder",
+  "displayName": "VSCode HTML Encoder",
   "description": "Encode your HTML templates to Javascript or TypeScript instructions",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "scripts": {
     "vscode:prepublish": "npm run build",
-    "build": "npm run copy & tsc & npm run build:es",
-    "build:watch": "npm run copy:watch & npm run build:es:watch & tsc -w",
-    "copy": "node ./node_modules/assetomat/index.js once",
-    "copy:watch": "node ./node_modules/assetomat/index.js",
-    "build:es": "tsc -p ./tsconfig.es.json",
-    "build:es:watch": "tsc -w -p ./tsconfig.es.json",
+    "build": "tsc",
+    "watch": "tsc -w",
     "pretest": "npm run build",
-    "test": "mocha src/test/*.test.js",
-    "test:extension": "node ./out/test/runTest.js",
+    "test": "node ./out/test/runTest.js",
+    "coverage-report": "nyc report",
     "vscode:package": "vsce package",
     "vscode:publish": "vsce publish"
   },
   "categories": [
+    "Formatters",
     "Programming Languages",
+    "Snippets",
     "Other"
+  ],
+  "keywords": [
+    "html",
+    "javascript",
+    "typescript",
+    "json"
+  ],
+  "activationEvents": [
+    "onLanguage:html"
   ],
   "icon": "images/icon.png",
   "galleryBanner": {
@@ -40,38 +47,14 @@
     "url": "https://github.com/odedshr/html-encoder/issues",
     "name": "odedshr@gmail.com"
   },
-  "assets": [
-    {
-      "source": "src/JSNode.ts",
-      "target": [
-        "out/JSNode.template-ts",
-        "src/JSNode.es.ts"
-      ]
-    }
-  ],
   "engines": {
     "vscode": "^1.46.0"
   },
-  "activationEvents": [
-    "onLanguage:html-encoder"
-  ],
   "main": "./out/extension.js",
-  "contributes": {
-    "languages": [
-      {
-        "id": "html-encoder",
-        "aliases": [
-          "HTML-Encoder"
-        ],
-        "extensions": [
-          "template.html"
-        ]
-      }
-    ]
-  },
   "dependencies": {
     "@types/xmldom": "^0.1.30",
     "chokidar": "^3.4.2",
+    "html-encoder": "^2.0.4",
     "xmldom": "^0.3.0"
   },
   "devDependencies": {

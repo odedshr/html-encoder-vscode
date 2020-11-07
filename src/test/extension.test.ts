@@ -8,7 +8,7 @@ import { addFolder, removeFolder, saveFile } from './utils';
 
 suite('Extension Test Suite', async () => {
 	vscode.window.showInformationMessage('Start all tests');
-	const tempFolder = normalize(`${__dirname}/../../../.tmp`);
+	const tempFolder = normalize(`${__dirname}/../../.tmp`);
 
 	test('non-template html file', async function () {
 		this.timeout(6000);
@@ -18,8 +18,8 @@ suite('Extension Test Suite', async () => {
 		await saveFile(normalize(`${uniqueFolder}/index.html`), 'hello world', '!');
 		const files = readdirSync(uniqueFolder);
 
-		assert.equal(files.length, 1);
-		assert.equal(files[0], 'index.html');
+		assert.strictEqual(files.length, 1);
+		assert.strictEqual(files[0], 'index.html');
 		removeFolder(uniqueFolder);
 	});
 
@@ -29,7 +29,7 @@ suite('Extension Test Suite', async () => {
 		const outputFile = filename.replace(/\.html$/i, '.js');
 		await saveFile(filename, 'hello world', '!');
 
-		assert.ok(existsSync(outputFile), 'js file exists');
+		assert.ok(existsSync(outputFile), `${outputFile} file exists`);
 		removeFolder(tempFolder);
 	});
 
@@ -56,7 +56,7 @@ suite('Extension Test Suite', async () => {
 	test('same folder ts', async () => {
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile4.template.html`);
-		await saveFile(filename, 'hello world', '<?out ./output.ts ?>');
+		await saveFile(filename, 'hello world', '<?out ./output.ts?>');
 
 		assert.ok(existsSync(`${tempFolder}/output.ts`), 'ts file exists');
 		removeFolder(tempFolder);
@@ -80,20 +80,6 @@ suite('Extension Test Suite', async () => {
 		removeFolder(tempFolder);
 	});
 
-	test('ssr file', async () => {
-		addFolder(tempFolder);
-		const filename = normalize(`${tempFolder}/testFile7.template.html`);
-		const outputFile = normalize(`${tempFolder}/ssr-test.js`);
-		await saveFile(filename, '<div>Hello <?=name#?></div>', '<?out ssr-test.js ssr?>');
-
-		assert.ok(existsSync(outputFile), `js file exists ${outputFile}`);
-		const { getNode, initNode } = await import(outputFile);
-		const ssrNode = getNode({ name: 'world' });
-		const node = initNode(ssrNode);
-		assert.ok(node.set.name, 'world');
-		removeFolder(tempFolder);
-	});
-
 	test('es file', async () => {
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile8.template.html`);
@@ -103,6 +89,24 @@ suite('Extension Test Suite', async () => {
 		assert.ok(existsSync(outputFile), `js file exists ${outputFile}`);
 		const fileContent = readFileSync(outputFile);
 		assert.ok(fileContent.indexOf('export default class JSNode') > -1);
+		removeFolder(tempFolder);
+	});
+
+	test('ssr file', async () => {
+		addFolder(tempFolder);
+		const filename = normalize(`${tempFolder}/testFile7.template.html`);
+		const browserFile = normalize(`${tempFolder}/ssr-test-browser.js`);
+		const serverFile = normalize(`${tempFolder}/ssr-test-server.js`);
+
+		await saveFile(filename, '<div>Hello <?=name#?></div>', '<?out ssr-test-server.js ssr?><?out ssr-test-browser.js ?>');
+		assert.ok(existsSync(serverFile), `server file exists ${serverFile}`);
+		assert.ok(existsSync(browserFile), `browser file exists ${browserFile}`);
+
+		const { getNode } = await import(serverFile);
+		const { initNode } = await import(browserFile);
+		const ssrNode = getNode({ name: 'world' });
+		const node = initNode(ssrNode);
+		assert.ok(node.set.name, 'world');
 		removeFolder(tempFolder);
 	});
 });
