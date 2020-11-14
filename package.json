@@ -1,15 +1,15 @@
 {
   "name": "vscode-html-encoder",
-  "displayName": "VSCode HTML Encoder",
+  "displayName": "HTML Encoder",
   "description": "Encode your HTML templates to Javascript or TypeScript instructions",
   "version": "1.0.6",
   "scripts": {
-    "vscode:prepublish": "npm run build",
     "build": "tsc",
     "watch": "tsc -w",
     "pretest": "npm run build",
     "test": "node ./out/test/runTest.js",
     "coverage-report": "nyc report",
+    "vscode:prepublish": "npm run build",
     "vscode:package": "vsce package",
     "vscode:publish": "vsce publish"
   },
@@ -41,7 +41,7 @@
   "license": "https://github.com/odedshr/html-encoder/blob/master/LICENSE",
   "repository": {
     "type": "git",
-    "url": "https://github.com/odedshr/html-encoder.git"
+    "url": "https://github.com/odedshr/html-encoder-vscode.git"
   },
   "bugs": {
     "url": "https://github.com/odedshr/html-encoder/issues",
@@ -54,7 +54,7 @@
   "dependencies": {
     "@types/xmldom": "^0.1.30",
     "chokidar": "^3.4.2",
-    "html-encoder": "^2.0.4",
+    "html-encoder": "^2.0.6",
     "xmldom": "^0.3.0"
   },
   "devDependencies": {

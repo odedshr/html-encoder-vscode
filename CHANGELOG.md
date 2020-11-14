@@ -74,3 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.6] - 2020-11-07
 
 💥 Moved htmlEncoder to a separated project; supporting its latest version 2.0.6
+
+## [1.0.7] - 2020-11-14
+
+📦 Updated to HTML encoder v2.0.6
+📝 Updated Readme
