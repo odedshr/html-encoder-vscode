@@ -1,10 +1,10 @@
 # HTML Encoder extension for VS-code
 
-[![Build Status](https://travis-ci.org/odedshr/html-encoder.svg?branch=master)](https://travis-ci.org/odedshr/html-encoder)
+[![Build Status](https://travis-ci.org/odedshr/html-encoder-vscode.svg?branch=master)](https://travis-ci.org/odedshr/html-encoder-vscode)
 
-[![Dependency Status](https://david-dm.org/odedshr/html-encoder.svg?theme=shields.io)](https://david-dm.org/odedshr/html-encoder)
+[![Dependency Status](https://david-dm.org/odedshr/html-encoder-vscode.svg?theme=shields.io)](https://david-dm.org/odedshr/html-encoder-vscode)
 
-[![license](https://img.shields.io/badge/license-ISC-brightgreen.svg)](https://github.com/odedshr/html-encoder/blob/master/LICENSE)
+[![license](https://img.shields.io/badge/license-ISC-brightgreen.svg)](https://github.com/odedshr/html-encoder-vscode/blob/master/LICENSE)
 
 ## The Main Gist
 
