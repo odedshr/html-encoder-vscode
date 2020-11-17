@@ -79,3 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 📦 Updated to HTML encoder v2.0.6
 📝 Updated Readme
+
+## [1.0.8] - 2020-11-17
+
+- ✅ Extended timeout for tests

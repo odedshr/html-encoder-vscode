@@ -11,7 +11,7 @@ suite('Extension Test Suite', async () => {
 	const tempFolder = normalize(`${__dirname}/../../.tmp`);
 
 	test('non-template html file', async function () {
-		this.timeout(6000);
+		this.timeout(10000);
 
 		const uniqueFolder = `${tempFolder}1`;
 		addFolder(uniqueFolder);
@@ -23,7 +23,9 @@ suite('Extension Test Suite', async () => {
 		removeFolder(uniqueFolder);
 	});
 
-	test('default file', async () => {
+	test('default file', async function () {
+		this.timeout(10000);
+
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile1.template.html`);
 		const outputFile = filename.replace(/\.html$/i, '.js');
@@ -33,7 +35,9 @@ suite('Extension Test Suite', async () => {
 		removeFolder(tempFolder);
 	});
 
-	test('default typescript file', async () => {
+	test('default typescript file', async function () {
+		this.timeout(10000);
+
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile2.template.html`);
 		const outputFile = filename.replace(/\.html$/i, '.ts');
@@ -43,7 +47,8 @@ suite('Extension Test Suite', async () => {
 		removeFolder(tempFolder);
 	});
 
-	test('both default typescript and javascript files', async () => {
+	test('both default typescript and javascript files', async function () {
+		this.timeout(10000);
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile3.template.html`);
 		await saveFile(filename, 'hello world', '<?out *.ts ?><?out *.js ?>');
@@ -53,7 +58,9 @@ suite('Extension Test Suite', async () => {
 		removeFolder(tempFolder);
 	});
 
-	test('same folder ts', async () => {
+	test('same folder ts', async function () {
+		this.timeout(10000);
+
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile4.template.html`);
 		await saveFile(filename, 'hello world', '<?out ./output.ts?>');
@@ -62,7 +69,9 @@ suite('Extension Test Suite', async () => {
 		removeFolder(tempFolder);
 	});
 
-	test('path not-specified', async () => {
+	test('path not-specified', async function () {
+		this.timeout(10000);
+
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile5.template.html`);
 		await saveFile(filename, 'hello world', '<?out output.ts ?>');
@@ -71,7 +80,9 @@ suite('Extension Test Suite', async () => {
 		removeFolder(tempFolder);
 	});
 
-	test('outside folder', async () => {
+	test('outside folder', async function () {
+		this.timeout(10000);
+
 		addFolder(`${tempFolder}/foo`);
 		const filename = normalize(`${tempFolder}/foo/testFile6.template.html`);
 		await saveFile(filename, 'hello world', '<?out ../output.ts ?>');
@@ -80,7 +91,9 @@ suite('Extension Test Suite', async () => {
 		removeFolder(tempFolder);
 	});
 
-	test('es file', async () => {
+	test('es file', async function () {
+		this.timeout(10000);
+
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile8.template.html`);
 		const outputFile = normalize(`${tempFolder}/es-test.js`);
@@ -92,7 +105,9 @@ suite('Extension Test Suite', async () => {
 		removeFolder(tempFolder);
 	});
 
-	test('ssr file', async () => {
+	test('ssr file', async function () {
+		this.timeout(10000);
+
 		addFolder(tempFolder);
 		const filename = normalize(`${tempFolder}/testFile7.template.html`);
 		const browserFile = normalize(`${tempFolder}/ssr-test-browser.js`);
