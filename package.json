@@ -2,7 +2,7 @@
   "name": "vscode-html-encoder",
   "displayName": "HTML Encoder",
   "description": "Encode your HTML templates to Javascript or TypeScript instructions",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
